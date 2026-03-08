@@ -3,6 +3,7 @@ package com.vicpoo.shopy.features.presentation.screens
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -67,19 +68,31 @@ fun RegisterScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF050505),
+                        Color(0xFF0B0B0F),
+                        Color(0xFF050505)
+                    )
+                )
+            )
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
 
+            Spacer(modifier = Modifier.height(50.dp))
+
+            // LOGO
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(120.dp)
                     .clip(CircleShape)
                     .shadow(20.dp, spotColor = Color(0xFFFF2E92), shape = CircleShape)
                     .background(
@@ -91,7 +104,7 @@ fun RegisterScreen(
             ) {
                 Icon(
                     Icons.Default.PersonAdd,
-                    contentDescription = "Registro",
+                    contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(48.dp)
                 )
@@ -101,200 +114,127 @@ fun RegisterScreen(
 
             Text(
                 text = "CREAR CUENTA",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF222222),
-                letterSpacing = 1.sp
+                fontSize = 26.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Únete a nuestra comunidad de moda",
-                fontSize = 14.sp,
-                color = Color(0xFF666666)
+                text = "Únete a nuestra comunidad",
+                color = Color(0xFFAAAAAA),
+                fontSize = 14.sp
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(30.dp))
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(30.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.95f)
+                    containerColor = Color.White.copy(alpha = 0.05f)
                 ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
+                border = BorderStroke(
+                    1.dp,
+                    Color.White.copy(alpha = 0.15f)
+                )
             ) {
+
                 Column(
                     modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
                 ) {
+
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+
                         OutlinedTextField(
                             value = name,
                             onValueChange = { name = it },
-                            label = {
-                                Text(
-                                    "Nombre",
-                                    color = Color(0xFF666666)
-                                )
-                            },
+                            placeholder = { Text("Nombre", color = Color.Gray) },
                             modifier = Modifier.weight(1f),
-                            singleLine = true,
                             leadingIcon = {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = "Nombre",
-                                    tint = Color(0xFFFF2E92)
-                                )
+                                Icon(Icons.Default.Person, null, tint = Color(0xFFFF2E92))
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFFFF2E92),
-                                unfocusedBorderColor = Color(0xFFDDDDDD),
-                                focusedLabelColor = Color(0xFFFF2E92),
-                                unfocusedLabelColor = Color(0xFF666666)
+                                unfocusedBorderColor = Color.White.copy(.2f),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
                             ),
-                            shape = MaterialTheme.shapes.large
+                            shape = RoundedCornerShape(20.dp)
                         )
 
                         OutlinedTextField(
                             value = lastname,
                             onValueChange = { lastname = it },
-                            label = {
-                                Text(
-                                    "Apellido",
-                                    color = Color(0xFF666666)
-                                )
-                            },
+                            placeholder = { Text("Apellido", color = Color.Gray) },
                             modifier = Modifier.weight(1f),
-                            singleLine = true,
                             leadingIcon = {
-                                Icon(
-                                    Icons.Default.PersonOutline,
-                                    contentDescription = "Apellido",
-                                    tint = Color(0xFFFF2E92)
-                                )
+                                Icon(Icons.Default.PersonOutline, null, tint = Color(0xFFFF2E92))
                             },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = Color(0xFFFF2E92),
-                                unfocusedBorderColor = Color(0xFFDDDDDD),
-                                focusedLabelColor = Color(0xFFFF2E92),
-                                unfocusedLabelColor = Color(0xFF666666)
+                                unfocusedBorderColor = Color.White.copy(.2f),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
                             ),
-                            shape = MaterialTheme.shapes.large
+                            shape = RoundedCornerShape(20.dp)
                         )
                     }
 
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = {
-                            Text(
-                                "Correo electrónico",
-                                color = Color(0xFF666666)
-                            )
-                        },
+                        placeholder = { Text("Correo electrónico", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
                         leadingIcon = {
-                            Icon(
-                                Icons.Default.Email,
-                                contentDescription = "Email",
-                                tint = Color(0xFFFF2E92)
-                            )
+                            Icon(Icons.Default.Email, null, tint = Color(0xFFFF2E92))
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFFFF2E92),
-                            unfocusedBorderColor = Color(0xFFDDDDDD),
-                            focusedLabelColor = Color(0xFFFF2E92),
-                            unfocusedLabelColor = Color(0xFF666666)
+                            unfocusedBorderColor = Color.White.copy(.2f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
-                        shape = MaterialTheme.shapes.large
+                        shape = RoundedCornerShape(20.dp)
                     )
 
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = {
-                            Text(
-                                "Contraseña",
-                                color = Color(0xFF666666)
-                            )
-                        },
+                        placeholder = { Text("Contraseña", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         leadingIcon = {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = "Password",
-                                tint = Color(0xFFFF2E92)
-                            )
+                            Icon(Icons.Default.Lock, null, tint = Color(0xFFFF2E92))
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFFFF2E92),
-                            unfocusedBorderColor = Color(0xFFDDDDDD),
-                            focusedLabelColor = Color(0xFFFF2E92),
-                            unfocusedLabelColor = Color(0xFF666666)
+                            unfocusedBorderColor = Color.White.copy(.2f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
-                        shape = MaterialTheme.shapes.large
+                        shape = RoundedCornerShape(20.dp)
                     )
 
                     OutlinedTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = {
-                            Text(
-                                "Confirmar contraseña",
-                                color = Color(0xFF666666)
-                            )
-                        },
+                        placeholder = { Text("Confirmar contraseña", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         leadingIcon = {
-                            Icon(
-                                Icons.Default.Lock,
-                                contentDescription = "Confirm Password",
-                                tint = Color(0xFFFF2E92)
-                            )
+                            Icon(Icons.Default.Lock, null, tint = Color(0xFFFF2E92))
                         },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFFFF2E92),
-                            unfocusedBorderColor = Color(0xFFDDDDDD),
-                            focusedLabelColor = Color(0xFFFF2E92),
-                            unfocusedLabelColor = Color(0xFF666666)
+                            unfocusedBorderColor = Color.White.copy(.2f),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
-                        shape = MaterialTheme.shapes.large
+                        shape = RoundedCornerShape(20.dp)
                     )
-
-                    // Terms and conditions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = true,
-                            onCheckedChange = { /* Handle checkbox */ },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = Color(0xFFFF2E92),
-                                uncheckedColor = Color(0xFFDDDDDD)
-                            )
-                        )
-                        Text(
-                            text = "Acepto los términos y condiciones",
-                            fontSize = 12.sp,
-                            color = Color(0xFF666666),
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
                         onClick = {
@@ -306,42 +246,46 @@ fun RegisterScreen(
                                 showToast(context, "Las contraseñas no coinciden")
                             }
                         },
-                        enabled = email.isNotEmpty() && password.isNotEmpty() &&
-                                confirmPassword.isNotEmpty() && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(55.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF2E92)
+                            containerColor = Color.Transparent
                         ),
-                        shape = MaterialTheme.shapes.large
+                        contentPadding = PaddingValues()
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                strokeWidth = 2.dp,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        } else {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(
+                                            Color(0xFFFF2E92),
+                                            Color(0xFFFF6AA6)
+                                        )
+                                    ),
+                                    RoundedCornerShape(30.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+
                             Text(
                                 "CREAR CUENTA",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                     }
 
                     TextButton(
-                        onClick = {
-                            onNavigateToLogin()
-                        },
+                        onClick = { onNavigateToLogin() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
+
                         Text(
-                            "¿Ya tienes cuenta? Inicia sesión aquí",
-                            color = Color(0xFFFF2E92),
-                            fontSize = 14.sp
+                            "¿Ya tienes cuenta? Inicia sesión",
+                            color = Color(0xFFFF2E92)
                         )
                     }
                 }
@@ -351,3 +295,4 @@ fun RegisterScreen(
         }
     }
 }
+
