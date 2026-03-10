@@ -21,6 +21,14 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
 import com.vicpoo.shopy.R
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.text.font.FontWeight
 
 data class Product(
     val name: String,
@@ -44,128 +52,193 @@ fun MainScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    ModalNavigationDrawer(
-
-        drawerState = drawerState,
-
-        drawerContent = {
-
-            ModalDrawerSheet {
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Menú",
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(16.dp)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFF050505),
+                        Color(0xFF0B0B0F),
+                        Color(0xFF050505)
+                    )
                 )
-
-                NavigationDrawerItem(
-                    label = { Text("Vendedor") },
-                    selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Store, contentDescription = null) }
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = onLogout,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text("Cerrar sesión")
-                }
-            }
-        }
+            )
     ) {
 
-        Scaffold(
+        /* Línea decorativa igual que Register */
+        Canvas(modifier = Modifier.fillMaxSize()) {
 
-            topBar = {
+            val path = Path().apply {
 
-                TopAppBar(
+                moveTo(size.width * 0.9f, size.height * 0.1f)
 
-                    title = {
-                        Text(text = currentUser?.name ?: "Usuario")
-                    },
-
-                    navigationIcon = {
-
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            }
-                        ) {
-
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = "menu"
-                            )
-                        }
-                    },
-
-                    actions = {
-
-                        IconButton(onClick = { }) {
-
-                            Icon(
-                                Icons.Default.Notifications,
-                                contentDescription = "notificaciones"
-                            )
-                        }
-                    }
+                cubicTo(
+                    size.width * 1.1f, size.height * 0.3f,
+                    size.width * 0.7f, size.height * 0.5f,
+                    size.width * 0.95f, size.height * 0.8f
                 )
             }
 
-        ) { paddingValues ->
+            drawPath(
+                path = path,
+                brush = Brush.linearGradient(
+                    listOf(
+                        Color(0xFFFF2E92),
+                        Color(0xFFFF6AA6)
+                    )
+                ),
+                style = Stroke(
+                    width = 6f,
+                    cap = StrokeCap.Round
+                )
+            )
+        }
 
-            LazyColumn(
-                modifier = Modifier
-                    .padding(paddingValues)
-                    .padding(16.dp)
-            ) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
 
-                items(products) { product ->
+                ModalDrawerSheet(
+                    modifier = Modifier.background(Color(0xFF0B0B0F))
+                ) {
 
-                    Card(
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp)
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Text(
+                        "Menú",
+                        modifier = Modifier.padding(20.dp),
+                        color = Color.White,
+                        fontSize = 22.sp
+                    )
+
+                    NavigationDrawerItem(
+                        label = { Text("Vendedor") },
+                        selected = false,
+                        onClick = { },
+                        icon = { Icon(Icons.Default.Store, null) }
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = onLogout,
+                        modifier = Modifier.padding(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFFF2E92)
+                        )
                     ) {
+                        Text("Cerrar sesión")
+                    }
+                }
+            }
+        ) {
 
-                        Row(
-                            modifier = Modifier.padding(16.dp)
+            Scaffold(
+                containerColor = Color.Transparent,
+
+                topBar = {
+
+                    TopAppBar(
+
+                        title = {
+                            Text(
+                                currentUser?.name ?: "Usuario",
+                                color = Color.White
+                            )
+                        },
+
+                        navigationIcon = {
+
+                            IconButton(onClick = {
+                                scope.launch { drawerState.open() }
+                            }) {
+
+                                Icon(
+                                    Icons.Default.Menu,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                        },
+
+                        actions = {
+
+                            IconButton(onClick = { }) {
+
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = Color.White
+                                )
+                            }
+                        },
+
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent
+                        )
+                    )
+                }
+
+            ) { padding ->
+
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(padding)
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+
+                    items(products) { product ->
+
+                        Card(
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White.copy(alpha = 0.05f)
+                            ),
+                            border = BorderStroke(
+                                1.dp,
+                                Color.White.copy(alpha = 0.1f)
+                            )
                         ) {
 
-                            Image(
-                                painter = painterResource(id = product.image),
-                                contentDescription = product.name,
+                            Row(
                                 modifier = Modifier
-                                    .size(90.dp)
-                                    .clip(RoundedCornerShape(15.dp))
-                            )
+                                    .fillMaxWidth()
+                                    .padding(18.dp)
+                            ) {
 
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            Column {
-
-                                Text(
-                                    text = product.name,
-                                    fontSize = 18.sp
+                                Image(
+                                    painter = painterResource(product.image),
+                                    contentDescription = null,
+                                    modifier = Modifier
+                                        .size(90.dp)
+                                        .clip(RoundedCornerShape(18.dp))
                                 )
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.width(16.dp))
 
-                                Text(
-                                    text = "Precio: ${product.price}"
-                                )
+                                Column {
 
-                                Text(
-                                    text = "Tallas: ${product.sizes}"
-                                )
+                                    Text(
+                                        product.name,
+                                        color = Color.White,
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        "Precio: ${product.price}",
+                                        color = Color(0xFFFF2E92)
+                                    )
+
+                                    Text(
+                                        "Tallas: ${product.sizes}",
+                                        color = Color.LightGray
+                                    )
+                                }
                             }
                         }
                     }
