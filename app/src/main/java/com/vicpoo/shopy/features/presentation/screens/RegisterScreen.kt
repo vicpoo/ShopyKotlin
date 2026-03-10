@@ -21,6 +21,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -71,9 +76,39 @@ fun RegisterScreen(
                         Color(0xFF050505)
                     )
                 )
-            ),
-        contentAlignment = Alignment.Center
+            )
     ) {
+
+        Canvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+
+            val path = Path().apply {
+
+                moveTo(size.width * 0.9f, size.height * 0.1f)
+
+                cubicTo(
+                    size.width * 1.1f, size.height * 0.3f,
+                    size.width * 0.7f, size.height * 0.5f,
+                    size.width * 0.95f, size.height * 0.8f
+                )
+            }
+
+            drawPath(
+                path = path,
+                brush = Brush.linearGradient(
+                    listOf(
+                        Color(0xFFFF2E92),
+                        Color(0xFFFF6AA6)
+                    )
+                ),
+                style = Stroke(
+                    width = 6f,
+                    cap = StrokeCap.Round
+                )
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,11 +148,11 @@ fun RegisterScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(420.dp)
-                        .blur(80.dp)
+                        .blur(40.dp)
                         .background(
                             Brush.radialGradient(
                                 listOf(
-                                    Color(0x33FF2E92),
+                                    Color(0x22FF2E92),
                                     Color.Transparent
                                 )
                             )
@@ -127,7 +162,7 @@ fun RegisterScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .blur(2.dp),
+                        .blur(0.dp),
 
                     shape = RoundedCornerShape(30.dp),
                     colors = CardDefaults.cardColors(
