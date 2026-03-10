@@ -3,14 +3,14 @@ package com.vicpoo.shopy.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.vicpoo.shopy.core.di.Di
-import com.vicpoo.shopy.features.presentation.screens.*
+import com.vicpoo.shopy.features.presentation.screens.LoginScreen
+import com.vicpoo.shopy.features.presentation.screens.MainScreen
+import com.vicpoo.shopy.features.presentation.screens.RegisterScreen
 import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
-import com.vicpoo.shopy.features.presentation.viewmodels.ClothViewModel
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -22,17 +22,12 @@ sealed class Screen(val route: String) {
 fun AppNavigation() {
     val navController = rememberNavController()
     val authViewModel = remember {
-        AuthViewModel(Di.registerUseCase, Di.loginUseCase)
-    }
-    val clothViewModel = remember {
-        ClothViewModel(
-            Di.getAllClothesUseCase,
-            Di.createClothUseCase,
-            Di.updateClothUseCase,
-            Di.deleteClothUseCase,
-            Di.searchClothByNameUseCase,
-            Di.searchClothBySizeUseCase,
-            Di.searchClothByPriceRangeUseCase
+        AuthViewModel(
+            registerUseCase = Di.registerUseCase,
+            loginUseCase = Di.loginUseCase,
+            loginWithGoogleUseCase = Di.loginWithGoogleUseCase,
+            getCurrentUserUseCase = Di.getCurrentUserUseCase,
+            logoutUseCase = Di.logoutUseCase
         )
     }
 
@@ -75,7 +70,6 @@ fun AppNavigation() {
         composable(Screen.Main.route) {
             MainScreen(
                 authViewModel = authViewModel,
-                clothViewModel = clothViewModel,
                 navController = navController,
                 onLogout = {
                     authViewModel.logout()

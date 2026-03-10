@@ -1,32 +1,16 @@
 //Di.kt
 package com.vicpoo.shopy.core.di
 
-import com.vicpoo.shopy.core.network.RetrofitProvider
-import com.vicpoo.shopy.features.data.remote.ClothApi
-import com.vicpoo.shopy.features.data.remote.UserApi
-import com.vicpoo.shopy.features.data.repository.ClothRepositoryImpl
-import com.vicpoo.shopy.features.data.repository.UserRepositoryImpl
-import com.vicpoo.shopy.features.domain.repository.ClothRepository
+import com.vicpoo.shopy.features.data.repository.FirebaseUserRepository
 import com.vicpoo.shopy.features.domain.repository.UserRepository
 import com.vicpoo.shopy.features.domain.usecase.*
 
 object Di {
-    private val userApi: UserApi by lazy {
-        RetrofitProvider.retrofit.create(UserApi::class.java)
-    }
-
-    private val clothApi: ClothApi by lazy {
-        RetrofitProvider.retrofit.create(ClothApi::class.java)
-    }
-
     private val userRepository: UserRepository by lazy {
-        UserRepositoryImpl(userApi)
+        FirebaseUserRepository()
     }
 
-    private val clothRepository: ClothRepository by lazy {
-        ClothRepositoryImpl(clothApi)
-    }
-
+    // User UseCases
     val registerUseCase: RegisterUseCase by lazy {
         RegisterUseCase(userRepository)
     }
@@ -35,31 +19,38 @@ object Di {
         LoginUseCase(userRepository)
     }
 
-    val getAllClothesUseCase: GetAllClothesUseCase by lazy {
-        GetAllClothesUseCase(clothRepository)
+    val loginWithGoogleUseCase: LoginWithGoogleUseCase by lazy {
+        LoginWithGoogleUseCase(userRepository)
     }
 
-    val createClothUseCase: CreateClothUseCase by lazy {
-        CreateClothUseCase(clothRepository)
+    val getAllUsersUseCase: GetAllUsersUseCase by lazy {
+        GetAllUsersUseCase(userRepository)
     }
 
-    val updateClothUseCase: UpdateClothUseCase by lazy {
-        UpdateClothUseCase(clothRepository)
+    val getUserByIdUseCase: GetUserByIdUseCase by lazy {
+        GetUserByIdUseCase(userRepository)
     }
 
-    val deleteClothUseCase: DeleteClothUseCase by lazy {
-        DeleteClothUseCase(clothRepository)
+    val createUserUseCase: CreateUserUseCase by lazy {
+        CreateUserUseCase(userRepository)
     }
 
-    val searchClothByNameUseCase: SearchClothByNameUseCase by lazy {
-        SearchClothByNameUseCase(clothRepository)
+    val updateUserUseCase: UpdateUserUseCase by lazy {
+        UpdateUserUseCase(userRepository)
     }
 
-    val searchClothBySizeUseCase: SearchClothBySizeUseCase by lazy {
-        SearchClothBySizeUseCase(clothRepository)
+    val deleteUserUseCase: DeleteUserUseCase by lazy {
+        DeleteUserUseCase(userRepository)
     }
 
-    val searchClothByPriceRangeUseCase: SearchClothByPriceRangeUseCase by lazy {
-        SearchClothByPriceRangeUseCase(clothRepository)
+    val getCurrentUserUseCase: GetCurrentUserUseCase by lazy {
+        GetCurrentUserUseCase(userRepository)
     }
+
+    val logoutUseCase: LogoutUseCase by lazy {
+        LogoutUseCase(userRepository)
+    }
+
+    // Aquí irán los use cases de productos cuando los implementes
+    // val getAllClothesUseCase: GetAllClothesUseCase by lazy { ... }
 }

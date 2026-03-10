@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "166602616668",
+    "firebase_url": "https://shopi-192605-default-rtdb.firebaseio.com",
+    "project_id": "shopi-192605",
+    "storage_bucket": "shopi-192605.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:166602616668:android:ec11848c81ddf90b6b5b99",
+        "android_client_info": {
+          "package_name": "com.vicpoo.shopy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "166602616668-k4arta9b9ekiochcmc0k68jsn9romg0b.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0m5cdfQVYlVAD9HTjQ8w7Ldjg7d9pjPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "166602616668-k4arta9b9ekiochcmc0k68jsn9romg0b.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

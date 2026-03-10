@@ -1,10 +1,9 @@
-//User.kt
+//AuthResponse.kt
 package com.vicpoo.shopy.features.domain.model
 
-data class User(
+data class AuthResponse(
     val uid: String,
     val email: String,
     val name: String? = null,
-    val role: String = "user",
-    val cart: Map<String, Any> = emptyMap()
+    val role: String = "user"
 )
