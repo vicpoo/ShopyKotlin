@@ -125,7 +125,7 @@ fun MainScreen(
                         onClick = onLogout,
                         modifier = Modifier.padding(20.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF2E92)
+                            containerColor = Color(0xEEBD2B6E)
                         )
                     ) {
                         Text("Cerrar sesión")
