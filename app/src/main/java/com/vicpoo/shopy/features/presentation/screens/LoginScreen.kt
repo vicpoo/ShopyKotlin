@@ -2,6 +2,7 @@
 package com.vicpoo.shopy.features.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.ui.draw.blur
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -87,16 +88,17 @@ fun LoginScreen(
         // Luz rosa izquierda
         Box(
             modifier = Modifier
-                .size(250.dp)
+                .size(350.dp)
                 .align(Alignment.CenterStart)
                 .background(
                     Brush.radialGradient(
-                        listOf(
-                            Color(0xFFFF2E92).copy(.25f),
+                        colors = listOf(
+                            Color(0xFFFF2E92).copy(.35f),
                             Color.Transparent
                         )
                     )
                 )
+                .blur(120.dp)
         )
 
         // Puntos decorativos
@@ -132,7 +134,7 @@ fun LoginScreen(
                 text = "S H O P Y",
                 color = Color.White,
                 fontSize = 34.sp,
-                letterSpacing = 10.sp,
+                letterSpacing = 12.sp,
                 fontWeight = FontWeight.Light
             )
 
@@ -142,18 +144,18 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
-                        40.dp,
+                        50.dp,
                         RoundedCornerShape(35.dp),
                         ambientColor = Color(0xFFFF2E92),
                         spotColor = Color(0xFFFF2E92)
                     ),
                 shape = RoundedCornerShape(35.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(.06f)
+                    containerColor = Color(0xFF1C1C1E).copy(alpha = 0.85f)
                 ),
                 border = BorderStroke(
                     1.dp,
-                    Color.White.copy(.15f)
+                    Color.White.copy(.08f)
                 )
             ) {
                 Column(
@@ -183,7 +185,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                Color.White.copy(.06f),
+                                Color.White.copy(.08f),
                                 RoundedCornerShape(20.dp)
                             ),
                         shape = RoundedCornerShape(20.dp),
@@ -223,7 +225,7 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                Color.White.copy(.06f),
+                                Color.White.copy(.08f),
                                 RoundedCornerShape(20.dp)
                             ),
                         shape = RoundedCornerShape(20.dp),
@@ -263,7 +265,7 @@ fun LoginScreen(
                                     Brush.horizontalGradient(
                                         listOf(
                                             Color(0xFFFF2E92),
-                                            Color(0xFFFF6AA6)
+                                            Color(0xFFFF4FA3)
                                         )
                                     ),
                                     RoundedCornerShape(30.dp)
