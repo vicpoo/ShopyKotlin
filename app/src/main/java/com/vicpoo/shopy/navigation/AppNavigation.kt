@@ -1,4 +1,4 @@
-//AppNavigation.kt
+// AppNavigation.kt (CORREGIDO)
 package com.vicpoo.shopy.navigation
 
 import androidx.compose.runtime.Composable
@@ -10,12 +10,15 @@ import com.vicpoo.shopy.core.di.Di
 import com.vicpoo.shopy.features.presentation.screens.LoginScreen
 import com.vicpoo.shopy.features.presentation.screens.MainScreen
 import com.vicpoo.shopy.features.presentation.screens.RegisterScreen
+import com.vicpoo.shopy.features.presentation.screens.SellerScreen
 import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
+import com.vicpoo.shopy.features.presentation.viewmodels.SellerViewModel
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
     object Main : Screen("main")
+    object Seller : Screen("seller")
 }
 
 @Composable
@@ -76,7 +79,30 @@ fun AppNavigation() {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Main.route) { inclusive = true }
                     }
+                },
+                onNavigateToSeller = {
+                    navController.navigate(Screen.Seller.route)
                 }
+            )
+        }
+
+        composable(Screen.Seller.route) {
+            val sellerViewModel = remember {
+                SellerViewModel(
+                    getCurrentUserUseCase = Di.getCurrentUserUseCase,
+                    changeUserRoleUseCase = Di.changeUserRoleUseCase,
+                    getClothesBySellerUseCase = Di.getClothesBySellerUseCase,
+                    observeClothesBySellerUseCase = Di.observeClothesBySellerUseCase,
+                    createClothUseCase = Di.createClothUseCase,
+                    updateClothUseCase = Di.updateClothUseCase,
+                    deleteClothUseCase = Di.deleteClothUseCase
+                )
+            }
+
+            SellerScreen(
+                sellerViewModel = sellerViewModel,
+                navController = navController,
+                onBack = { navController.popBackStack() }
             )
         }
     }

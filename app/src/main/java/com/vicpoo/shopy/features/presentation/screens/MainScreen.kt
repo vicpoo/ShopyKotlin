@@ -1,3 +1,4 @@
+//MainScreen.kt
 package com.vicpoo.shopy.features.presentation.screens
 
 import androidx.compose.foundation.layout.*
@@ -29,6 +30,9 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
+import com.vicpoo.shopy.core.di.Di
+import com.vicpoo.shopy.features.presentation.components.BecomeSellerDialog
+import com.vicpoo.shopy.features.presentation.viewmodels.SellerViewModel
 
 data class Product(
     val name: String,
@@ -36,14 +40,33 @@ data class Product(
     val sizes: String,
     val image: Int
 )
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     authViewModel: AuthViewModel,
     navController: NavController,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToSeller: () -> Unit
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
+
+    // Crear SellerViewModel
+    val sellerViewModel = remember {
+        SellerViewModel(
+            getCurrentUserUseCase = Di.getCurrentUserUseCase,
+            changeUserRoleUseCase = Di.changeUserRoleUseCase,
+            getClothesBySellerUseCase = Di.getClothesBySellerUseCase,
+            observeClothesBySellerUseCase = Di.observeClothesBySellerUseCase,
+            createClothUseCase = Di.createClothUseCase,
+            updateClothUseCase = Di.updateClothUseCase,
+            deleteClothUseCase = Di.deleteClothUseCase
+        )
+    }
+
+    val isSeller by sellerViewModel.isSeller.collectAsState()
+    val showDialog by sellerViewModel.showConfirmationDialog.collectAsState()
+
     val products = listOf(
         Product("Nike Air Max", "$120", "38, 39, 40, 41", R.drawable.nike),
         Product("Adidas Ultraboost", "$140", "39, 40, 41, 42", R.drawable.adidas),
@@ -65,14 +88,9 @@ fun MainScreen(
                 )
             )
     ) {
-
-        /* Línea decorativa igual que Register */
         Canvas(modifier = Modifier.fillMaxSize()) {
-
             val path = Path().apply {
-
                 moveTo(size.width * 0.9f, size.height * 0.1f)
-
                 cubicTo(
                     size.width * 1.1f, size.height * 0.3f,
                     size.width * 0.7f, size.height * 0.5f,
@@ -98,11 +116,9 @@ fun MainScreen(
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
-
                 ModalDrawerSheet(
                     modifier = Modifier.background(Color(0xFF0B0B0F))
                 ) {
-
                     Spacer(modifier = Modifier.height(40.dp))
 
                     Text(
@@ -112,11 +128,30 @@ fun MainScreen(
                         fontSize = 22.sp
                     )
 
+                    // Opción de Vendedor
                     NavigationDrawerItem(
-                        label = { Text("Vendedor") },
+                        label = {
+                            Text(
+                                if (isSeller) "Panel de Vendedor" else "Ser Vendedor",
+                                color = if (isSeller) Color(0xFFFF2E92) else Color.White
+                            )
+                        },
                         selected = false,
-                        onClick = { },
-                        icon = { Icon(Icons.Default.Store, null) }
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            if (isSeller) {
+                                onNavigateToSeller()
+                            } else {
+                                sellerViewModel.showBecomeSellerDialog()
+                            }
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.Store,
+                                contentDescription = null,
+                                tint = if (isSeller) Color(0xFFFF2E92) else Color.White
+                            )
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -133,27 +168,20 @@ fun MainScreen(
                 }
             }
         ) {
-
             Scaffold(
                 containerColor = Color.Transparent,
-
                 topBar = {
-
                     TopAppBar(
-
                         title = {
                             Text(
                                 currentUser?.name ?: "Usuario",
                                 color = Color.White
                             )
                         },
-
                         navigationIcon = {
-
                             IconButton(onClick = {
                                 scope.launch { drawerState.open() }
                             }) {
-
                                 Icon(
                                     Icons.Default.Menu,
                                     contentDescription = null,
@@ -161,11 +189,8 @@ fun MainScreen(
                                 )
                             }
                         },
-
                         actions = {
-
                             IconButton(onClick = { }) {
-
                                 Icon(
                                     Icons.Default.Notifications,
                                     contentDescription = null,
@@ -173,24 +198,19 @@ fun MainScreen(
                                 )
                             }
                         },
-
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = Color.Transparent
                         )
                     )
                 }
-
             ) { padding ->
-
                 LazyColumn(
                     modifier = Modifier
                         .padding(padding)
                         .padding(24.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-
                     items(products) { product ->
-
                         Card(
                             shape = RoundedCornerShape(24.dp),
                             colors = CardDefaults.cardColors(
@@ -201,13 +221,11 @@ fun MainScreen(
                                 Color.White.copy(alpha = 0.1f)
                             )
                         ) {
-
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(18.dp)
                             ) {
-
                                 Image(
                                     painter = painterResource(product.image),
                                     contentDescription = null,
@@ -219,7 +237,6 @@ fun MainScreen(
                                 Spacer(modifier = Modifier.width(16.dp))
 
                                 Column {
-
                                     Text(
                                         product.name,
                                         color = Color.White,
@@ -245,5 +262,14 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    // Diálogo de confirmación para hacerse vendedor
+    if (showDialog) {
+        BecomeSellerDialog(
+            onConfirm = { sellerViewModel.becomeSeller() },
+            onDismiss = { sellerViewModel.hideBecomeSellerDialog() },
+            isLoading = sellerViewModel.isLoading.collectAsState().value
+        )
     }
 }

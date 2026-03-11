@@ -1,15 +1,18 @@
+//ClothRepository.kt
 package com.vicpoo.shopy.features.domain.repository
 
 import com.vicpoo.shopy.features.domain.model.Cloth
-import com.vicpoo.shopy.features.domain.model.ClothRequest
+import kotlinx.coroutines.flow.Flow
 import java.io.File
 
 interface ClothRepository {
     suspend fun getAllClothes(): List<Cloth>
-    suspend fun getClothById(id: Int): Cloth
-    suspend fun createCloth(request: ClothRequest, imageFile: File? = null): Cloth
-    suspend fun updateCloth(id: Int, request: ClothRequest, imageFile: File? = null): Cloth
-    suspend fun deleteCloth(id: Int): Boolean
+    suspend fun getClothById(id: String): Cloth
+    suspend fun createCloth(cloth: Cloth, imageFile: File? = null): Cloth
+    suspend fun updateCloth(id: String, cloth: Cloth, imageFile: File? = null): Cloth
+    suspend fun deleteCloth(id: String): Boolean
+    suspend fun getClothesBySeller(sellerId: String): List<Cloth>
+    fun observeClothesBySeller(sellerId: String): Flow<List<Cloth>>
     suspend fun searchByName(name: String): List<Cloth>
     suspend fun searchBySize(size: String): List<Cloth>
     suspend fun searchByPriceRange(minPrice: Double, maxPrice: Double): List<Cloth>

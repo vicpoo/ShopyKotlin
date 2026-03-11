@@ -1,13 +1,20 @@
 //Di.kt
 package com.vicpoo.shopy.core.di
 
+import com.vicpoo.shopy.features.data.repository.FirebaseClothRepository
 import com.vicpoo.shopy.features.data.repository.FirebaseUserRepository
+import com.vicpoo.shopy.features.domain.repository.ClothRepository
 import com.vicpoo.shopy.features.domain.repository.UserRepository
 import com.vicpoo.shopy.features.domain.usecase.*
 
 object Di {
+    // Repositorios
     private val userRepository: UserRepository by lazy {
         FirebaseUserRepository()
+    }
+
+    private val clothRepository: ClothRepository by lazy {
+        FirebaseClothRepository()
     }
 
     // User UseCases
@@ -51,6 +58,48 @@ object Di {
         LogoutUseCase(userRepository)
     }
 
-    // Aquí irán los use cases de productos cuando los implementes
-    // val getAllClothesUseCase: GetAllClothesUseCase by lazy { ... }
+    val changeUserRoleUseCase: ChangeUserRoleUseCase by lazy {
+        ChangeUserRoleUseCase(userRepository)
+    }
+
+    // Cloth UseCases
+    val getAllClothesUseCase: GetAllClothesUseCase by lazy {
+        GetAllClothesUseCase(clothRepository)
+    }
+
+    val getClothByIdUseCase: GetClothByIdUseCase by lazy {
+        GetClothByIdUseCase(clothRepository)
+    }
+
+    val createClothUseCase: CreateClothUseCase by lazy {
+        CreateClothUseCase(clothRepository)
+    }
+
+    val updateClothUseCase: UpdateClothUseCase by lazy {
+        UpdateClothUseCase(clothRepository)
+    }
+
+    val deleteClothUseCase: DeleteClothUseCase by lazy {
+        DeleteClothUseCase(clothRepository)
+    }
+
+    val getClothesBySellerUseCase: GetClothesBySellerUseCase by lazy {
+        GetClothesBySellerUseCase(clothRepository)
+    }
+
+    val observeClothesBySellerUseCase: ObserveClothesBySellerUseCase by lazy {
+        ObserveClothesBySellerUseCase(clothRepository)
+    }
+
+    val searchClothByNameUseCase: SearchClothByNameUseCase by lazy {
+        SearchClothByNameUseCase(clothRepository)
+    }
+
+    val searchClothBySizeUseCase: SearchClothBySizeUseCase by lazy {
+        SearchClothBySizeUseCase(clothRepository)
+    }
+
+    val searchClothByPriceRangeUseCase: SearchClothByPriceRangeUseCase by lazy {
+        SearchClothByPriceRangeUseCase(clothRepository)
+    }
 }

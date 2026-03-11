@@ -1,8 +1,9 @@
+//ClothUseCase.kt
 package com.vicpoo.shopy.features.domain.usecase
 
 import com.vicpoo.shopy.features.domain.model.Cloth
-import com.vicpoo.shopy.features.domain.model.ClothRequest
 import com.vicpoo.shopy.features.domain.repository.ClothRepository
+import kotlinx.coroutines.flow.Flow
 import java.io.File
 
 class GetAllClothesUseCase(private val repository: ClothRepository) {
@@ -10,21 +11,31 @@ class GetAllClothesUseCase(private val repository: ClothRepository) {
 }
 
 class GetClothByIdUseCase(private val repository: ClothRepository) {
-    suspend operator fun invoke(id: Int): Cloth = repository.getClothById(id)
+    suspend operator fun invoke(id: String): Cloth = repository.getClothById(id)
 }
 
 class CreateClothUseCase(private val repository: ClothRepository) {
-    suspend operator fun invoke(request: ClothRequest, imageFile: File? = null): Cloth =
-        repository.createCloth(request, imageFile)
+    suspend operator fun invoke(cloth: Cloth, imageFile: File? = null): Cloth =
+        repository.createCloth(cloth, imageFile)
 }
 
 class UpdateClothUseCase(private val repository: ClothRepository) {
-    suspend operator fun invoke(id: Int, request: ClothRequest, imageFile: File? = null): Cloth =
-        repository.updateCloth(id, request, imageFile)
+    suspend operator fun invoke(id: String, cloth: Cloth, imageFile: File? = null): Cloth =
+        repository.updateCloth(id, cloth, imageFile)
 }
 
 class DeleteClothUseCase(private val repository: ClothRepository) {
-    suspend operator fun invoke(id: Int): Boolean = repository.deleteCloth(id)
+    suspend operator fun invoke(id: String): Boolean = repository.deleteCloth(id)
+}
+
+class GetClothesBySellerUseCase(private val repository: ClothRepository) {
+    suspend operator fun invoke(sellerId: String): List<Cloth> =
+        repository.getClothesBySeller(sellerId)
+}
+
+class ObserveClothesBySellerUseCase(private val repository: ClothRepository) {
+    operator fun invoke(sellerId: String): Flow<List<Cloth>> =
+        repository.observeClothesBySeller(sellerId)
 }
 
 class SearchClothByNameUseCase(private val repository: ClothRepository) {

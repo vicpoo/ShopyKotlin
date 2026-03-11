@@ -1,9 +1,9 @@
+// ClothViewModel.kt
 package com.vicpoo.shopy.features.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vicpoo.shopy.features.domain.model.Cloth
-import com.vicpoo.shopy.features.domain.model.ClothRequest
 import com.vicpoo.shopy.features.domain.usecase.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -53,13 +53,13 @@ class ClothViewModel(
         }
     }
 
-    fun createCloth(request: ClothRequest, imageFile: File?) {
+    fun createCloth(cloth: Cloth, imageFile: File?) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
-                val newCloth = createClothUseCase(request, imageFile)
+                val newCloth = createClothUseCase(cloth, imageFile)
                 _clothes.value = _clothes.value + newCloth
             } catch (e: Exception) {
                 _error.value = "Error al crear prenda: ${e.message}"
@@ -69,13 +69,13 @@ class ClothViewModel(
         }
     }
 
-    fun updateCloth(id: Int, request: ClothRequest, imageFile: File?) {
+    fun updateCloth(id: String, cloth: Cloth, imageFile: File?) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
 
             try {
-                val updatedCloth = updateClothUseCase(id, request, imageFile)
+                val updatedCloth = updateClothUseCase(id, cloth, imageFile)
                 _clothes.value = _clothes.value.map {
                     if (it.id == updatedCloth.id) updatedCloth else it
                 }
@@ -87,7 +87,7 @@ class ClothViewModel(
         }
     }
 
-    fun deleteCloth(id: Int) {
+    fun deleteCloth(id: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -157,5 +157,9 @@ class ClothViewModel(
 
     fun clearSearch() {
         _searchResults.value = emptyList()
+    }
+
+    fun clearError() {
+        _error.value = null
     }
 }
