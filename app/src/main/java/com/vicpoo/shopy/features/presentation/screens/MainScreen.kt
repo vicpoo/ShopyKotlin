@@ -41,23 +41,27 @@ import com.vicpoo.shopy.core.di.Di
 import com.vicpoo.shopy.core.utils.Base64ImageUtils
 import com.vicpoo.shopy.features.domain.model.Cloth
 import com.vicpoo.shopy.features.presentation.components.BecomeSellerDialog
-import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
-import com.vicpoo.shopy.features.presentation.viewmodels.CartViewModel
-import com.vicpoo.shopy.features.presentation.viewmodels.ClothViewModel
-import com.vicpoo.shopy.features.presentation.viewmodels.SellerViewModel
+import com.vicpoo.shopy.features.presentation.viewmodels.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     authViewModel: AuthViewModel,
     cartViewModel: CartViewModel,
+    notificationViewModel: NotificationViewModel,
     navController: NavController,
     onLogout: () -> Unit,
     onNavigateToSeller: () -> Unit,
-    onNavigateToCart: () -> Unit
+    onNavigateToCart: () -> Unit,
+    onNavigateToNotifications: () -> Unit
 ) {
     val context = LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
+
+    // Inicializar sonido de notificaciones
+    LaunchedEffect(Unit) {
+        notificationViewModel.initSound(context)
+    }
 
     // Crear SellerViewModel
     val sellerViewModel = remember {
@@ -87,10 +91,14 @@ fun MainScreen(
 
     val products by clothViewModel.clothes.collectAsState()
     val isLoadingProducts by clothViewModel.isLoading.collectAsState()
+    val isRefreshing by clothViewModel.isRefreshing.collectAsState()
+    val unreadNotifications by notificationViewModel.unreadCount.collectAsState()
 
-    // Cargar productos al iniciar la pantalla
+    // Cargar productos solo una vez al iniciar
     LaunchedEffect(Unit) {
-        clothViewModel.loadClothes()
+        if (products.isEmpty() && !isLoadingProducts) {
+            clothViewModel.loadClothes()
+        }
     }
 
     val isSeller by sellerViewModel.isSeller.collectAsState()
@@ -98,7 +106,7 @@ fun MainScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    // Manejar vibración (con verificación de permisos)
+    // Manejar vibración
     val vibrator = remember(context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -110,16 +118,12 @@ fun MainScreen(
     }
 
     fun vibrate() {
-        // Verificar si tenemos permiso de vibración
         val hasVibratePermission = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.VIBRATE
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!hasVibratePermission) {
-            // Si no hay permiso, simplemente no vibramos
-            return
-        }
+        if (!hasVibratePermission) return
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -129,7 +133,6 @@ fun MainScreen(
                 vibrator.vibrate(50)
             }
         } catch (e: Exception) {
-            // Si hay algún error al vibrar, lo ignoramos
             e.printStackTrace()
         }
     }
@@ -191,6 +194,36 @@ fun MainScreen(
                         modifier = Modifier.padding(20.dp),
                         color = Color.White,
                         fontSize = 22.sp
+                    )
+
+                    // Opción de Notificaciones
+                    NavigationDrawerItem(
+                        label = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Notificaciones", color = Color.White)
+                                if (unreadNotifications > 0) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Badge(
+                                        containerColor = Color(0xFFFF2E92),
+                                        content = { Text(unreadNotifications.toString()) }
+                                    )
+                                }
+                            }
+                        },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onNavigateToNotifications()
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.Notifications,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
                     )
 
                     // Opción de Carrito
@@ -272,6 +305,25 @@ fun MainScreen(
                             }
                         },
                         actions = {
+                            // Botón de notificaciones con badge
+                            IconButton(onClick = onNavigateToNotifications) {
+                                Box {
+                                    Icon(
+                                        Icons.Default.Notifications,
+                                        contentDescription = "Notificaciones",
+                                        tint = Color.White
+                                    )
+                                    if (unreadNotifications > 0) {
+                                        Badge(
+                                            containerColor = Color(0xFFFF2E92),
+                                            content = { Text(unreadNotifications.toString()) },
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .offset(x = 8.dp, y = (-8).dp)
+                                        )
+                                    }
+                                }
+                            }
                             IconButton(onClick = onNavigateToCart) {
                                 Icon(
                                     Icons.Default.ShoppingCart,
@@ -286,28 +338,46 @@ fun MainScreen(
                     )
                 }
             ) { padding ->
-                if (isLoadingProducts) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = Color(0xFFFF2E92))
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(padding)
-                            .padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(products) { product ->
-                            ProductCard(
-                                cloth = product,
-                                onAddToCart = { addToCart(product) }
-                            )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    if (isLoadingProducts && products.isEmpty()) {
+                        // Carga inicial
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Color(0xFFFF2E92))
                         }
+                    } else {
+                        // Lista de productos
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(products) { product ->
+                                ProductCard(
+                                    cloth = product,
+                                    onAddToCart = { addToCart(product) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Indicador de refresco en segundo plano
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            color = Color(0xFFFF2E92),
+                            strokeWidth = 2.dp,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.TopCenter)
+                                .padding(top = 8.dp)
+                        )
                     }
                 }
             }
@@ -332,7 +402,6 @@ fun ProductCard(
     var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     var isLoadingImage by remember { mutableStateOf(false) }
 
-    // Cargar imagen Base64 si existe
     LaunchedEffect(cloth.image) {
         if (cloth.image != null && cloth.image!!.isNotEmpty() && imageBitmap == null) {
             isLoadingImage = true

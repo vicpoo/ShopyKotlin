@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)  // Aplica el plugin de Compose Compiler
+    alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
 }
 
@@ -42,7 +42,6 @@ android {
         compose = true
     }
 
-    // 👇 ELIMINA COMPLETAMENTE el bloque composeOptions - YA NO SE USA
 }
 
 dependencies {
@@ -99,6 +98,10 @@ dependencies {
 
     // Coil para carga de imágenes
     implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Firebase Cloud Messaging
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Testing (usando el catálogo)
     testImplementation(libs.junit)

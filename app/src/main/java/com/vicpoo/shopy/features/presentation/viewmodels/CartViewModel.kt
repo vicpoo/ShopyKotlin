@@ -25,7 +25,6 @@ class CartViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    // Estado para el total del carrito
     val totalPrice: StateFlow<Double> = _cartItems
         .map { items -> items.sumOf { it.price * it.quantity } }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0.0)
@@ -48,7 +47,6 @@ class CartViewModel(
             _error.value = null
             try {
                 addToCartUseCase(productId, quantity)
-                // El flow se actualizará solo gracias al observer
             } catch (e: Exception) {
                 _error.value = "Error al agregar: ${e.message}"
             } finally {

@@ -19,6 +19,11 @@ object Di {
         FirebaseCartRepository()
     }
 
+    // NUEVO: Notification Repository
+    private val notificationRepository: NotificationRepository by lazy {
+        FirebaseNotificationRepository()
+    }
+
     // User UseCases
     val registerUseCase: RegisterUseCase by lazy {
         RegisterUseCase(userRepository)
@@ -124,5 +129,30 @@ object Di {
 
     val clearCartUseCase: ClearCartUseCase by lazy {
         ClearCartUseCase(cartRepository)
+    }
+
+    // NUEVO: Notification UseCases
+    val createNotificationUseCase: CreateNotificationUseCase by lazy {
+        CreateNotificationUseCase(notificationRepository)
+    }
+
+    val getNotificationsUseCase: GetNotificationsUseCase by lazy {
+        GetNotificationsUseCase(notificationRepository)
+    }
+
+    val markNotificationAsReadUseCase: MarkNotificationAsReadUseCase by lazy {
+        MarkNotificationAsReadUseCase(notificationRepository)
+    }
+
+    val markAllNotificationsAsReadUseCase: MarkAllNotificationsAsReadUseCase by lazy {
+        MarkAllNotificationsAsReadUseCase(notificationRepository)
+    }
+
+    val deleteNotificationUseCase: DeleteNotificationUseCase by lazy {
+        DeleteNotificationUseCase(notificationRepository)
+    }
+
+    val getUnreadNotificationCountUseCase: GetUnreadNotificationCountUseCase by lazy {
+        GetUnreadNotificationCountUseCase(notificationRepository)
     }
 }

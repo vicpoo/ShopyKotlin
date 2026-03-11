@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.io.File
 
 class ClothViewModel(
@@ -27,17 +28,27 @@ class ClothViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private val _searchResults = MutableStateFlow<List<Cloth>>(emptyList())
     val searchResults: StateFlow<List<Cloth>> = _searchResults.asStateFlow()
 
+    private var initialLoadDone = false
+
     init {
         loadClothes()
     }
 
-    fun loadClothes() {
+    fun loadClothes(forceRefresh: Boolean = false) {
+        // Evitar cargas múltiples
+        if (_isLoading.value || (_clothes.value.isNotEmpty() && !forceRefresh && initialLoadDone)) {
+            return
+        }
+
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
@@ -45,10 +56,29 @@ class ClothViewModel(
             try {
                 val clothesList = getAllClothesUseCase()
                 _clothes.value = clothesList
+                initialLoadDone = true
             } catch (e: Exception) {
                 _error.value = "Error al cargar prendas: ${e.message}"
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun refreshClothes() {
+        if (_isRefreshing.value) return
+
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            _error.value = null
+
+            try {
+                val clothesList = getAllClothesUseCase()
+                _clothes.value = clothesList
+            } catch (e: Exception) {
+                _error.value = "Error al actualizar: ${e.message}"
+            } finally {
+                _isRefreshing.value = false
             }
         }
     }
@@ -60,9 +90,18 @@ class ClothViewModel(
 
             try {
                 val newCloth = createClothUseCase(cloth, imageFile)
+
+                // Actualizar la lista local inmediatamente
                 _clothes.value = _clothes.value + newCloth
+
+                // Pequeña pausa para asegurar que Firebase procese
+                delay(500)
+
+                // Refrescar en segundo plano para asegurar consistencia
+                refreshClothes()
             } catch (e: Exception) {
                 _error.value = "Error al crear prenda: ${e.message}"
+                _isLoading.value = false
             } finally {
                 _isLoading.value = false
             }
@@ -76,9 +115,15 @@ class ClothViewModel(
 
             try {
                 val updatedCloth = updateClothUseCase(id, cloth, imageFile)
+
+                // Actualizar la lista local inmediatamente
                 _clothes.value = _clothes.value.map {
                     if (it.id == updatedCloth.id) updatedCloth else it
                 }
+
+                // Pequeña pausa y refrescar
+                delay(500)
+                refreshClothes()
             } catch (e: Exception) {
                 _error.value = "Error al actualizar prenda: ${e.message}"
             } finally {
@@ -96,6 +141,8 @@ class ClothViewModel(
                 val success = deleteClothUseCase(id)
                 if (success) {
                     _clothes.value = _clothes.value.filter { it.id != id }
+                    delay(500)
+                    refreshClothes()
                 } else {
                     _error.value = "No se pudo eliminar la prenda"
                 }

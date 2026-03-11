@@ -18,16 +18,22 @@ class FirebaseCartRepository : CartRepository {
     private val currentUserCartRef
         get() = FirebaseConfig.auth.currentUser?.uid?.let { uid ->
             FirebaseConfig.usersRef.child(uid).child("cart")
-        } ?: throw IllegalStateException("Usuario no autenticado")
-
-    private val productsRef = FirebaseConfig.productsRef
+        }
 
     override fun getCartItems(): Flow<List<CartItem>> = callbackFlow {
         val cartRef = try {
             currentUserCartRef
         } catch (e: Exception) {
+            // Si no hay usuario autenticado, emitir lista vacía
             trySend(emptyList())
-            close(e)
+            close()
+            return@callbackFlow
+        }
+
+        // Si no hay referencia de carrito (usuario no autenticado), emitir lista vacía
+        if (cartRef == null) {
+            trySend(emptyList())
+            close()
             return@callbackFlow
         }
 
@@ -49,7 +55,7 @@ class FirebaseCartRepository : CartRepository {
                         else -> 1
                     }
 
-                    productsRef.child(productId).get().addOnSuccessListener { productSnapshot ->
+                    FirebaseConfig.productsRef.child(productId).get().addOnSuccessListener { productSnapshot ->
                         val cloth = productSnapshot.toCloth()
                         if (cloth != null) {
                             items.add(
@@ -76,17 +82,24 @@ class FirebaseCartRepository : CartRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                close(error.toException())
+                // En caso de error, emitir lista vacía en lugar de cerrar
+                trySend(emptyList()).isSuccess
             }
         }
 
         cartRef.addValueEventListener(cartListener)
-        awaitClose { cartRef.removeEventListener(cartListener) }
+        awaitClose {
+            try {
+                cartRef.removeEventListener(cartListener)
+            } catch (e: Exception) {
+                // Ignorar error al remover listener
+            }
+        }
     }
 
     override suspend fun addToCart(productId: String, quantity: Int, selectedSize: String?) {
+        val cartRef = currentUserCartRef ?: throw Exception("Usuario no autenticado")
         try {
-            val cartRef = currentUserCartRef
             val snapshot = cartRef.child(productId).get().await()
             val currentQuantity = if (snapshot.exists()) (snapshot.value as Long).toInt() else 0
             cartRef.child(productId).setValue(currentQuantity + quantity).await()
@@ -96,19 +109,21 @@ class FirebaseCartRepository : CartRepository {
     }
 
     override suspend fun removeFromCart(productId: String) {
+        val cartRef = currentUserCartRef ?: throw Exception("Usuario no autenticado")
         try {
-            currentUserCartRef.child(productId).removeValue().await()
+            cartRef.child(productId).removeValue().await()
         } catch (e: Exception) {
             throw Exception("Error al eliminar del carrito: ${e.message}")
         }
     }
 
     override suspend fun updateQuantity(productId: String, newQuantity: Int) {
+        val cartRef = currentUserCartRef ?: throw Exception("Usuario no autenticado")
         try {
             if (newQuantity <= 0) {
                 removeFromCart(productId)
             } else {
-                currentUserCartRef.child(productId).setValue(newQuantity).await()
+                cartRef.child(productId).setValue(newQuantity).await()
             }
         } catch (e: Exception) {
             throw Exception("Error al actualizar cantidad: ${e.message}")
@@ -116,8 +131,9 @@ class FirebaseCartRepository : CartRepository {
     }
 
     override suspend fun clearCart() {
+        val cartRef = currentUserCartRef ?: throw Exception("Usuario no autenticado")
         try {
-            currentUserCartRef.removeValue().await()
+            cartRef.removeValue().await()
         } catch (e: Exception) {
             throw Exception("Error al vaciar el carrito: ${e.message}")
         }

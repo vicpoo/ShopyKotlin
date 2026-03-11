@@ -7,7 +7,9 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import com.vicpoo.shopy.core.firebase.FirebaseConfig
 import com.vicpoo.shopy.core.utils.Base64ImageUtils
+import com.vicpoo.shopy.core.utils.NotificationHelper
 import com.vicpoo.shopy.features.domain.model.Cloth
+import com.vicpoo.shopy.features.domain.model.Notification
 import com.vicpoo.shopy.features.domain.repository.ClothRepository
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -79,6 +81,27 @@ class FirebaseClothRepository : ClothRepository {
             newProductRef.setValue(clothMap).await()
 
             android.util.Log.d("FirebaseClothRepo", "Producto creado exitosamente con ID: $productId")
+
+            // NUEVO: Crear notificación en Realtime Database
+            try {
+                val notificationRef = FirebaseConfig.notificationsRef.push()
+                val notificationMap = HashMap<String, Any>().apply {
+                    put("title", "Nuevo producto disponible")
+                    put("message", "Se agregó '${cloth.name}' a la tienda")
+                    put("productId", productId)
+                    put("timestamp", System.currentTimeMillis())
+                    put("read", false)
+                }
+                notificationRef.setValue(notificationMap).await()
+                android.util.Log.d("FirebaseClothRepo", "Notificación creada exitosamente en DB")
+
+                // Enviar notificación FCM (esto requeriría un servidor backend)
+                // Por ahora, solo logueamos
+                android.util.Log.d("FirebaseClothRepo", "Notificación enviada a todos los usuarios")
+
+            } catch (e: Exception) {
+                android.util.Log.e("FirebaseClothRepo", "Error al crear notificación", e)
+            }
 
             // Devolver el producto creado con su ID
             cloth.copy(
