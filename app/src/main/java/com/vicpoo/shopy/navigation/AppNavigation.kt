@@ -7,23 +7,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.vicpoo.shopy.core.di.Di
-import com.vicpoo.shopy.features.presentation.screens.LoginScreen
-import com.vicpoo.shopy.features.presentation.screens.MainScreen
-import com.vicpoo.shopy.features.presentation.screens.RegisterScreen
-import com.vicpoo.shopy.features.presentation.screens.SellerScreen
-import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
-import com.vicpoo.shopy.features.presentation.viewmodels.SellerViewModel
+import com.vicpoo.shopy.features.presentation.screens.*
+import com.vicpoo.shopy.features.presentation.viewmodels.*
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
     object Main : Screen("main")
     object Seller : Screen("seller")
+    object Cart : Screen("cart") // NUEVA RUTA
 }
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+
+    // Crear ViewModels que necesitan ser compartidos
     val authViewModel = remember {
         AuthViewModel(
             registerUseCase = Di.registerUseCase,
@@ -31,6 +30,17 @@ fun AppNavigation() {
             loginWithGoogleUseCase = Di.loginWithGoogleUseCase,
             getCurrentUserUseCase = Di.getCurrentUserUseCase,
             logoutUseCase = Di.logoutUseCase
+        )
+    }
+
+    // NUEVO: Crear CartViewModel a nivel superior para que sea accesible desde varias pantallas
+    val cartViewModel = remember {
+        CartViewModel(
+            getCartItemsUseCase = Di.getCartItemsUseCase,
+            addToCartUseCase = Di.addToCartUseCase,
+            removeFromCartUseCase = Di.removeFromCartUseCase,
+            updateCartQuantityUseCase = Di.updateCartQuantityUseCase,
+            clearCartUseCase = Di.clearCartUseCase
         )
     }
 
@@ -73,6 +83,7 @@ fun AppNavigation() {
         composable(Screen.Main.route) {
             MainScreen(
                 authViewModel = authViewModel,
+                cartViewModel = cartViewModel, // Pasar el VM
                 navController = navController,
                 onLogout = {
                     authViewModel.logout()
@@ -82,6 +93,9 @@ fun AppNavigation() {
                 },
                 onNavigateToSeller = {
                     navController.navigate(Screen.Seller.route)
+                },
+                onNavigateToCart = { // NUEVO: Acción para ir al carrito
+                    navController.navigate(Screen.Cart.route)
                 }
             )
         }
@@ -101,6 +115,15 @@ fun AppNavigation() {
 
             SellerScreen(
                 sellerViewModel = sellerViewModel,
+                navController = navController,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // NUEVA PANTALLA: Carrito
+        composable(Screen.Cart.route) {
+            CartScreen(
+                cartViewModel = cartViewModel,
                 navController = navController,
                 onBack = { navController.popBackStack() }
             )

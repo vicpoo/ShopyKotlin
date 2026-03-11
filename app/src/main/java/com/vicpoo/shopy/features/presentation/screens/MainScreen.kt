@@ -1,54 +1,62 @@
 //MainScreen.kt
 package com.vicpoo.shopy.features.presentation.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.widget.Toast
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
-import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
-import com.vicpoo.shopy.R
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import com.vicpoo.shopy.core.di.Di
+import com.vicpoo.shopy.core.utils.Base64ImageUtils
+import com.vicpoo.shopy.features.domain.model.Cloth
 import com.vicpoo.shopy.features.presentation.components.BecomeSellerDialog
+import com.vicpoo.shopy.features.presentation.viewmodels.AuthViewModel
+import com.vicpoo.shopy.features.presentation.viewmodels.CartViewModel
+import com.vicpoo.shopy.features.presentation.viewmodels.ClothViewModel
 import com.vicpoo.shopy.features.presentation.viewmodels.SellerViewModel
-
-data class Product(
-    val name: String,
-    val price: String,
-    val sizes: String,
-    val image: Int
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     authViewModel: AuthViewModel,
+    cartViewModel: CartViewModel,
     navController: NavController,
     onLogout: () -> Unit,
-    onNavigateToSeller: () -> Unit
+    onNavigateToSeller: () -> Unit,
+    onNavigateToCart: () -> Unit
 ) {
+    val context = LocalContext.current
     val currentUser by authViewModel.currentUser.collectAsState()
 
     // Crear SellerViewModel
@@ -64,16 +72,73 @@ fun MainScreen(
         )
     }
 
+    // Crear ClothViewModel para obtener productos de la BD
+    val clothViewModel = remember {
+        ClothViewModel(
+            getAllClothesUseCase = Di.getAllClothesUseCase,
+            createClothUseCase = Di.createClothUseCase,
+            updateClothUseCase = Di.updateClothUseCase,
+            deleteClothUseCase = Di.deleteClothUseCase,
+            searchClothByNameUseCase = Di.searchClothByNameUseCase,
+            searchClothBySizeUseCase = Di.searchClothBySizeUseCase,
+            searchClothByPriceRangeUseCase = Di.searchClothByPriceRangeUseCase
+        )
+    }
+
+    val products by clothViewModel.clothes.collectAsState()
+    val isLoadingProducts by clothViewModel.isLoading.collectAsState()
+
+    // Cargar productos al iniciar la pantalla
+    LaunchedEffect(Unit) {
+        clothViewModel.loadClothes()
+    }
+
     val isSeller by sellerViewModel.isSeller.collectAsState()
     val showDialog by sellerViewModel.showConfirmationDialog.collectAsState()
-
-    val products = listOf(
-        Product("Nike Air Max", "$120", "38, 39, 40, 41", R.drawable.nike),
-        Product("Adidas Ultraboost", "$140", "39, 40, 41, 42", R.drawable.adidas),
-        Product("Puma Runner", "$95", "37, 38, 39, 40", R.drawable.puma)
-    )
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Manejar vibración (con verificación de permisos)
+    val vibrator = remember(context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+    }
+
+    fun vibrate() {
+        // Verificar si tenemos permiso de vibración
+        val hasVibratePermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.VIBRATE
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasVibratePermission) {
+            // Si no hay permiso, simplemente no vibramos
+            return
+        }
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(50)
+            }
+        } catch (e: Exception) {
+            // Si hay algún error al vibrar, lo ignoramos
+            e.printStackTrace()
+        }
+    }
+
+    fun addToCart(cloth: Cloth) {
+        vibrate()
+        cartViewModel.addToCart(cloth.id)
+        Toast.makeText(context, "${cloth.name} añadido al carrito", Toast.LENGTH_SHORT).show()
+    }
 
     Box(
         modifier = Modifier
@@ -126,6 +191,23 @@ fun MainScreen(
                         modifier = Modifier.padding(20.dp),
                         color = Color.White,
                         fontSize = 22.sp
+                    )
+
+                    // Opción de Carrito
+                    NavigationDrawerItem(
+                        label = { Text("Carrito", color = Color.White) },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onNavigateToCart()
+                        },
+                        icon = {
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                        }
                     )
 
                     // Opción de Vendedor
@@ -190,10 +272,10 @@ fun MainScreen(
                             }
                         },
                         actions = {
-                            IconButton(onClick = { }) {
+                            IconButton(onClick = onNavigateToCart) {
                                 Icon(
-                                    Icons.Default.Notifications,
-                                    contentDescription = null,
+                                    Icons.Default.ShoppingCart,
+                                    contentDescription = "Carrito",
                                     tint = Color.White
                                 )
                             }
@@ -204,59 +286,27 @@ fun MainScreen(
                     )
                 }
             ) { padding ->
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(padding)
-                        .padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(products) { product ->
-                        Card(
-                            shape = RoundedCornerShape(24.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.05f)
-                            ),
-                            border = BorderStroke(
-                                1.dp,
-                                Color.White.copy(alpha = 0.1f)
+                if (isLoadingProducts) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(padding),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = Color(0xFFFF2E92))
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(padding)
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(products) { product ->
+                            ProductCard(
+                                cloth = product,
+                                onAddToCart = { addToCart(product) }
                             )
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(18.dp)
-                            ) {
-                                Image(
-                                    painter = painterResource(product.image),
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(90.dp)
-                                        .clip(RoundedCornerShape(18.dp))
-                                )
-
-                                Spacer(modifier = Modifier.width(16.dp))
-
-                                Column {
-                                    Text(
-                                        product.name,
-                                        color = Color.White,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    Text(
-                                        "Precio: ${product.price}",
-                                        color = Color(0xFFFF2E92)
-                                    )
-
-                                    Text(
-                                        "Tallas: ${product.sizes}",
-                                        color = Color.LightGray
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -271,5 +321,119 @@ fun MainScreen(
             onDismiss = { sellerViewModel.hideBecomeSellerDialog() },
             isLoading = sellerViewModel.isLoading.collectAsState().value
         )
+    }
+}
+
+@Composable
+fun ProductCard(
+    cloth: Cloth,
+    onAddToCart: () -> Unit
+) {
+    var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
+    var isLoadingImage by remember { mutableStateOf(false) }
+
+    // Cargar imagen Base64 si existe
+    LaunchedEffect(cloth.image) {
+        if (cloth.image != null && cloth.image!!.isNotEmpty() && imageBitmap == null) {
+            isLoadingImage = true
+            try {
+                if (cloth.image!!.startsWith("/9j/") || cloth.image!!.length > 100) {
+                    val bitmap = Base64ImageUtils.base64ToBitmap(cloth.image!!)
+                    imageBitmap = bitmap?.asImageBitmap()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isLoadingImage = false
+            }
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.05f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color.White.copy(alpha = 0.1f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Imagen
+            Box(
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.Gray.copy(alpha = 0.3f)),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    isLoadingImage -> CircularProgressIndicator(
+                        color = Color(0xFFFF2E92),
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(30.dp)
+                    )
+                    imageBitmap != null -> Image(
+                        bitmap = imageBitmap!!,
+                        contentDescription = cloth.name,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> Icon(
+                        Icons.Default.Image,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Información del producto
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    cloth.name,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "$${cloth.price ?: 0}",
+                    color = Color(0xFFFF2E92),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    "Tallas: ${cloth.size ?: "N/A"}",
+                    color = Color.LightGray,
+                    fontSize = 12.sp
+                )
+            }
+
+            // Botón de agregar al carrito
+            IconButton(
+                onClick = onAddToCart,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        Color(0xFFFF2E92).copy(alpha = 0.2f),
+                        RoundedCornerShape(12.dp)
+                    )
+            ) {
+                Icon(
+                    Icons.Default.AddShoppingCart,
+                    contentDescription = "Agregar al carrito",
+                    tint = Color(0xFFFF2E92)
+                )
+            }
+        }
     }
 }

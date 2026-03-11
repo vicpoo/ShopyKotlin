@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
+    <!-- AGREGAR ESTA LÍNEA PARA EL PERMISO DE VIBRACIÓN -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- Características de la cámara (no requeridas, la app funciona sin cámara) -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />

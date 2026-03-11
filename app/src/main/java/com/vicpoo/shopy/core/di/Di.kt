@@ -1,10 +1,8 @@
 //Di.kt
 package com.vicpoo.shopy.core.di
 
-import com.vicpoo.shopy.features.data.repository.FirebaseClothRepository
-import com.vicpoo.shopy.features.data.repository.FirebaseUserRepository
-import com.vicpoo.shopy.features.domain.repository.ClothRepository
-import com.vicpoo.shopy.features.domain.repository.UserRepository
+import com.vicpoo.shopy.features.data.repository.*
+import com.vicpoo.shopy.features.domain.repository.*
 import com.vicpoo.shopy.features.domain.usecase.*
 
 object Di {
@@ -15,6 +13,10 @@ object Di {
 
     private val clothRepository: ClothRepository by lazy {
         FirebaseClothRepository()
+    }
+
+    private val cartRepository: CartRepository by lazy {
+        FirebaseCartRepository()
     }
 
     // User UseCases
@@ -101,5 +103,26 @@ object Di {
 
     val searchClothByPriceRangeUseCase: SearchClothByPriceRangeUseCase by lazy {
         SearchClothByPriceRangeUseCase(clothRepository)
+    }
+
+    // Cart UseCases
+    val getCartItemsUseCase: GetCartItemsUseCase by lazy {
+        GetCartItemsUseCase(cartRepository)
+    }
+
+    val addToCartUseCase: AddToCartUseCase by lazy {
+        AddToCartUseCase(cartRepository)
+    }
+
+    val removeFromCartUseCase: RemoveFromCartUseCase by lazy {
+        RemoveFromCartUseCase(cartRepository)
+    }
+
+    val updateCartQuantityUseCase: UpdateCartQuantityUseCase by lazy {
+        UpdateCartQuantityUseCase(cartRepository)
+    }
+
+    val clearCartUseCase: ClearCartUseCase by lazy {
+        ClearCartUseCase(cartRepository)
     }
 }
