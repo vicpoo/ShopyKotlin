@@ -18,7 +18,6 @@ object FirebaseConfig {
         FirebaseStorage.getInstance()
     }
 
-    // Referencias a nodos de la base de datos
     val usersRef = database.getReference("users")
     val productsRef = database.getReference("products")
     val notificationsRef = database.getReference("notifications")

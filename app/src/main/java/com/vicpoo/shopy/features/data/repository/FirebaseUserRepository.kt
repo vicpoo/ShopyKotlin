@@ -20,14 +20,12 @@ class FirebaseUserRepository : UserRepository {
 
     override suspend fun register(request: RegisterRequest): AuthResponse {
         return try {
-            // 1. Crear usuario en Firebase Auth
             val authResult = FirebaseConfig.auth
                 .createUserWithEmailAndPassword(request.email, request.password)
                 .await()
 
             val firebaseUser = authResult.user ?: throw Exception("Error al crear usuario")
 
-            // 2. Actualizar perfil con nombre completo
             request.name?.let { name ->
                 if (name.isNotBlank()) {
                     val profileUpdates = userProfileChangeRequest {
@@ -37,10 +35,9 @@ class FirebaseUserRepository : UserRepository {
                 }
             }
 
-            // 3. Guardar datos en Realtime Database - CORREGIDO: Especificar tipos correctamente
             val userMap = HashMap<String, Any>()
             userMap["email"] = request.email
-            userMap["role"] = "user" // SIEMPRE user por defecto
+            userMap["role"] = "user"
             userMap["cart"] = emptyMap<String, Any>()
 
             if (!request.name.isNullOrBlank()) {
@@ -52,14 +49,13 @@ class FirebaseUserRepository : UserRepository {
                 .setValue(userMap)
                 .await()
 
-            // Pequeña pausa para asegurar que la base de datos se actualice
             delay(500)
 
             AuthResponse(
                 uid = firebaseUser.uid,
                 email = request.email,
                 name = request.name,
-                role = "user" // SIEMPRE user por defecto
+                role = "user"
             )
         } catch (e: Exception) {
             throw Exception("Error al registrar: ${e.message}")
@@ -74,7 +70,6 @@ class FirebaseUserRepository : UserRepository {
 
             val firebaseUser = authResult.user ?: throw Exception("Credenciales inválidas")
 
-            // Obtener datos de Realtime Database
             val userSnapshot = try {
                 FirebaseConfig.usersRef
                     .child(firebaseUser.uid)
@@ -84,11 +79,10 @@ class FirebaseUserRepository : UserRepository {
                 null
             }
 
-            // Si no existe, crear el usuario en la base de datos
             if (userSnapshot == null || !userSnapshot.exists()) {
                 val userMap = HashMap<String, Any>()
                 userMap["email"] = firebaseUser.email ?: request.email
-                userMap["role"] = "user" // SIEMPRE user por defecto
+                userMap["role"] = "user"
                 userMap["cart"] = emptyMap<String, Any>()
 
                 firebaseUser.displayName?.let { displayName ->
@@ -102,11 +96,9 @@ class FirebaseUserRepository : UserRepository {
                     .setValue(userMap)
                     .await()
 
-                // Pequeña pausa para asegurar que la base de datos se actualice
                 delay(500)
             }
 
-            // Obtener los datos actualizados
             val finalSnapshot = FirebaseConfig.usersRef
                 .child(firebaseUser.uid)
                 .get()
@@ -137,7 +129,6 @@ class FirebaseUserRepository : UserRepository {
             val authResult = FirebaseConfig.auth.signInWithCredential(credential).await()
             val firebaseUser = authResult.user ?: throw Exception("Error al iniciar sesión con Google")
 
-            // Verificar si el usuario ya existe en Realtime Database
             val userSnapshot = try {
                 FirebaseConfig.usersRef.child(firebaseUser.uid).get().await()
             } catch (e: Exception) {
@@ -147,10 +138,9 @@ class FirebaseUserRepository : UserRepository {
             var userData: Map<String, Any>? = null
 
             if (userSnapshot == null || !userSnapshot.exists()) {
-                // Crear nuevo usuario SIEMPRE con role "user" - CORREGIDO: Especificar tipos
                 val userMap = HashMap<String, Any>()
                 userMap["email"] = firebaseUser.email ?: ""
-                userMap["role"] = "user" // ¡FORZAMOS role "user" explícitamente!
+                userMap["role"] = "user"
                 userMap["cart"] = emptyMap<String, Any>()
 
                 firebaseUser.displayName?.let { displayName ->
@@ -159,30 +149,24 @@ class FirebaseUserRepository : UserRepository {
                     }
                 }
 
-                // IMPORTANTE: Esperar a que se complete la escritura
                 FirebaseConfig.usersRef
                     .child(firebaseUser.uid)
                     .setValue(userMap)
                     .await()
 
-                // Pequeña pausa para asegurar que la base de datos se actualice
                 delay(500)
 
-                // Usar el mapa que acabamos de crear
                 userData = userMap
             } else {
-                // Usuario ya existe, obtener sus datos
                 userData = userSnapshot.value as? Map<String, Any>
             }
 
-            // Asegurarnos de que el role sea "user" si no existe
             val name = (userData?.get("name") as? String)?.takeIf { it.isNotBlank() }
                 ?: firebaseUser.displayName?.takeIf { it.isNotBlank() }
                 ?: ""
 
             val role = (userData?.get("role") as? String)?.takeIf { it.isNotBlank() } ?: "user"
 
-            // Si por alguna razón el role no es "user" en la BD, lo actualizamos
             if (role != "user") {
                 val updates = HashMap<String, Any>()
                 updates["role"] = "user"
@@ -196,7 +180,7 @@ class FirebaseUserRepository : UserRepository {
                 uid = firebaseUser.uid,
                 email = firebaseUser.email ?: "",
                 name = name,
-                role = "user" // Forzamos "user" en la respuesta
+                role = "user"
             )
         } catch (e: Exception) {
             throw Exception("Error al iniciar sesión con Google: ${e.message}")
@@ -320,7 +304,6 @@ class FirebaseUserRepository : UserRepository {
                 updates["email"] = user.email
             }
 
-            // Permite actualizar el rol si es necesario
             if (user.role.isNotBlank() && user.role != "user") {
                 updates["role"] = user.role
             }
@@ -401,10 +384,8 @@ class FirebaseUserRepository : UserRepository {
 
                             trySend(user).isSuccess
                         } else if (!isFirstEmission) {
-                            // Si no existe pero no es la primera emisión, enviamos null
                             trySend(null).isSuccess
                         }
-                        // Si es la primera emisión y no existe, esperamos a que se cree
                         isFirstEmission = false
                     }
 
@@ -440,7 +421,6 @@ class FirebaseUserRepository : UserRepository {
         try {
             FirebaseConfig.auth.signOut()
         } catch (e: Exception) {
-            // Ignorar error
         }
     }
 }

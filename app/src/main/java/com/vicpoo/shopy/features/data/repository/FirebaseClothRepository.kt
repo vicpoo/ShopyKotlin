@@ -41,7 +41,6 @@ class FirebaseClothRepository : ClothRepository {
         return try {
             android.util.Log.d("FirebaseClothRepo", "Intentando crear producto para seller: ${cloth.sellerId}")
 
-            // Convertir imagen a Base64 si existe
             var base64Image: String? = null
             if (imageFile != null && imageFile.exists()) {
                 base64Image = Base64ImageUtils.fileToBase64(imageFile)
@@ -51,11 +50,9 @@ class FirebaseClothRepository : ClothRepository {
                 }
             }
 
-            // Generar nueva key para el producto
             val newProductRef = FirebaseConfig.productsRef.push()
             val productId = newProductRef.key ?: throw Exception("Error al generar ID")
 
-            // Crear mapa de datos
             val clothMap = HashMap<String, Any>().apply {
                 put("name", cloth.name)
                 put("sellerId", cloth.sellerId)
@@ -67,7 +64,6 @@ class FirebaseClothRepository : ClothRepository {
                 cloth.price?.let { put("price", it) }
                 cloth.stock?.let { put("stock", it) }
 
-                // Guardar la imagen en Base64 (priorizar la nueva imagen)
                 if (base64Image != null) {
                     put("image", base64Image)
                 } else {
@@ -77,12 +73,10 @@ class FirebaseClothRepository : ClothRepository {
 
             android.util.Log.d("FirebaseClothRepo", "Guardando producto: $clothMap")
 
-            // Guardar en Firebase
             newProductRef.setValue(clothMap).await()
 
             android.util.Log.d("FirebaseClothRepo", "Producto creado exitosamente con ID: $productId")
 
-            // NUEVO: Crear notificación en Realtime Database
             try {
                 val notificationRef = FirebaseConfig.notificationsRef.push()
                 val notificationMap = HashMap<String, Any>().apply {
@@ -95,15 +89,12 @@ class FirebaseClothRepository : ClothRepository {
                 notificationRef.setValue(notificationMap).await()
                 android.util.Log.d("FirebaseClothRepo", "Notificación creada exitosamente en DB")
 
-                // Enviar notificación FCM (esto requeriría un servidor backend)
-                // Por ahora, solo logueamos
                 android.util.Log.d("FirebaseClothRepo", "Notificación enviada a todos los usuarios")
 
             } catch (e: Exception) {
                 android.util.Log.e("FirebaseClothRepo", "Error al crear notificación", e)
             }
 
-            // Devolver el producto creado con su ID
             cloth.copy(
                 id = productId,
                 image = base64Image ?: cloth.image
@@ -118,7 +109,6 @@ class FirebaseClothRepository : ClothRepository {
         return try {
             android.util.Log.d("FirebaseClothRepo", "Actualizando producto $id")
 
-            // Convertir nueva imagen a Base64 si existe
             var base64Image: String? = cloth.image
             if (imageFile != null && imageFile.exists()) {
                 base64Image = Base64ImageUtils.fileToBase64(imageFile)
@@ -128,7 +118,6 @@ class FirebaseClothRepository : ClothRepository {
                 }
             }
 
-            // Crear mapa de actualizaciones
             val updates = HashMap<String, Any>().apply {
                 put("name", cloth.name)
                 put("updatedAt", System.currentTimeMillis())
@@ -138,13 +127,11 @@ class FirebaseClothRepository : ClothRepository {
                 cloth.price?.let { put("price", it) }
                 cloth.stock?.let { put("stock", it) }
 
-                // Actualizar imagen si cambió
                 if (base64Image != null) {
                     put("image", base64Image)
                 }
             }
 
-            // Actualizar en Firebase Database
             FirebaseConfig.productsRef.child(id).updateChildren(updates).await()
 
             android.util.Log.d("FirebaseClothRepo", "Producto actualizado exitosamente")
@@ -243,7 +230,6 @@ class FirebaseClothRepository : ClothRepository {
         }
     }
 
-    // Función de extensión para convertir DataSnapshot a Cloth
     private fun DataSnapshot.toCloth(): Cloth? {
         val id = key ?: return null
         val value = value as? Map<String, Any> ?: return null

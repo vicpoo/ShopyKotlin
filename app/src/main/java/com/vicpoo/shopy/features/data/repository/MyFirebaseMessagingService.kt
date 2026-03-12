@@ -24,7 +24,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        // Verificar si el mensaje contiene una notificación
         remoteMessage.notification?.let { notification ->
             sendNotification(
                 notification.title ?: "Nueva notificación",
@@ -33,7 +32,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             )
         }
 
-        // También manejar datos personalizados
         if (remoteMessage.data.isNotEmpty()) {
             val title = remoteMessage.data["title"] ?: "Nueva notificación"
             val message = remoteMessage.data["message"] ?: ""
@@ -54,7 +52,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Usar nuestro sonido personalizado
         val soundUri = android.net.Uri.parse(
             "android.resource://${packageName}/${R.raw.notification_sound}"
         )
@@ -71,7 +68,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Crear canal de notificaciones para Android O+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
@@ -91,7 +87,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Guardar el token si es necesario
-        // Puedes enviarlo a tu servidor o guardarlo en Firebase Database
+
     }
 }

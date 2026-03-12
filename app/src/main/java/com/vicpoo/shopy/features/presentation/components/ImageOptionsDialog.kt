@@ -1,5 +1,4 @@
 // ImageOptionsDialog.kt
-// ImageOptionsDialog.kt
 package com.vicpoo.shopy.features.presentation.components
 
 import androidx.compose.foundation.background

@@ -24,13 +24,11 @@ class FirebaseCartRepository : CartRepository {
         val cartRef = try {
             currentUserCartRef
         } catch (e: Exception) {
-            // Si no hay usuario autenticado, emitir lista vacía
             trySend(emptyList())
             close()
             return@callbackFlow
         }
 
-        // Si no hay referencia de carrito (usuario no autenticado), emitir lista vacía
         if (cartRef == null) {
             trySend(emptyList())
             close()
@@ -82,7 +80,6 @@ class FirebaseCartRepository : CartRepository {
             }
 
             override fun onCancelled(error: DatabaseError) {
-                // En caso de error, emitir lista vacía en lugar de cerrar
                 trySend(emptyList()).isSuccess
             }
         }
@@ -92,7 +89,6 @@ class FirebaseCartRepository : CartRepository {
             try {
                 cartRef.removeEventListener(cartListener)
             } catch (e: Exception) {
-                // Ignorar error al remover listener
             }
         }
     }

@@ -29,8 +29,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
     val permissionDenied = remember { mutableStateOf(false) }
     val tempCameraFile = remember { mutableStateOf<File?>(null) }
 
-    // Primero declaramos los launchers que necesitan referencias a otros launchers
-    // Lanzador para tomar foto con la cámara
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -40,7 +38,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         tempCameraFile.value = null
     }
 
-    // Lanzador para seleccionar imagen de la galería
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -49,7 +46,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         }
     }
 
-    // Lanzador para permisos de cámara (usa takePictureLauncher)
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -69,7 +65,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         showImageOptions.value = false
     }
 
-    // Lanzador para permisos de almacenamiento (Android < 13) (usa pickImageLauncher)
     val storagePermissionLauncher = if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
@@ -83,7 +78,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         }
     } else null
 
-    // Lanzador para permisos de fotos (Android 13+) (usa pickImageLauncher)
     val photosPermissionLauncher = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
@@ -97,7 +91,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         }
     } else null
 
-    // Función para solicitar cámara
     val requestCamera: () -> Unit = {
         when {
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
@@ -118,7 +111,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         }
     }
 
-    // Función para solicitar galería
     val requestGallery: () -> Unit = {
         when {
             android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU -> {
@@ -140,7 +132,6 @@ fun rememberImagePickerHandler(): ImagePickerState {
         }
     }
 
-    // Función para abrir ajustes
     val openSettings: () -> Unit = {
         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
             data = Uri.parse("package:${context.packageName}")
@@ -180,7 +171,6 @@ data class ImagePickerState(
     val hideOptions: () -> Unit
 )
 
-// Funciones auxiliares
 private fun createTempImageFile(context: Context): File {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val imageFileName = "JPEG_${timeStamp}_"

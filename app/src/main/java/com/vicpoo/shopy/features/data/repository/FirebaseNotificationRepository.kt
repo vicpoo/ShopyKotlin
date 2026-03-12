@@ -73,7 +73,6 @@ class FirebaseNotificationRepository : NotificationRepository {
 
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Error en listener: ${error.message}")
-                // No cerramos el flow, solo enviamos lista vacía
                 trySend(emptyList()).isSuccess
             }
         }
@@ -97,7 +96,6 @@ class FirebaseNotificationRepository : NotificationRepository {
                 .await()
         } catch (e: Exception) {
             Log.e(TAG, "Error al marcar como leída", e)
-            // No lanzamos excepción para no bloquear la UI
         }
     }
 

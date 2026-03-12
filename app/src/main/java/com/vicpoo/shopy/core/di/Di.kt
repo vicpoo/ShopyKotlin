@@ -6,7 +6,6 @@ import com.vicpoo.shopy.features.domain.repository.*
 import com.vicpoo.shopy.features.domain.usecase.*
 
 object Di {
-    // Repositorios
     private val userRepository: UserRepository by lazy {
         FirebaseUserRepository()
     }
@@ -19,12 +18,10 @@ object Di {
         FirebaseCartRepository()
     }
 
-    // NUEVO: Notification Repository
     private val notificationRepository: NotificationRepository by lazy {
         FirebaseNotificationRepository()
     }
 
-    // User UseCases
     val registerUseCase: RegisterUseCase by lazy {
         RegisterUseCase(userRepository)
     }
@@ -110,7 +107,6 @@ object Di {
         SearchClothByPriceRangeUseCase(clothRepository)
     }
 
-    // Cart UseCases
     val getCartItemsUseCase: GetCartItemsUseCase by lazy {
         GetCartItemsUseCase(cartRepository)
     }
@@ -131,7 +127,6 @@ object Di {
         ClearCartUseCase(cartRepository)
     }
 
-    // NUEVO: Notification UseCases
     val createNotificationUseCase: CreateNotificationUseCase by lazy {
         CreateNotificationUseCase(notificationRepository)
     }
