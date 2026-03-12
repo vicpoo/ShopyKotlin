@@ -2,11 +2,9 @@
 package com.vicpoo.shopy
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,12 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.vicpoo.shopy.navigation.AppNavigation
 import com.vicpoo.shopy.ui.theme.ShopyTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    companion object {
-        private const val TAG = "MainActivity"
-    }
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -31,7 +27,7 @@ class MainActivity : ComponentActivity() {
         if (isGranted) {
             Toast.makeText(this, "Permiso de notificaciones concedido", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "No recibirás notificaciones", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "No recibirás notificaciones push", Toast.LENGTH_LONG).show()
         }
     }
 

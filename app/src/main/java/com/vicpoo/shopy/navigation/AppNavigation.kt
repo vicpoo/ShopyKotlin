@@ -4,14 +4,12 @@ package com.vicpoo.shopy.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.vicpoo.shopy.core.di.Di
-import com.vicpoo.shopy.features.presentation.screens.*
-import com.vicpoo.shopy.features.presentation.viewmodels.*
+import com.vicpoo.shopy.presentation.screens.*
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -25,51 +23,8 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-
-    // Crear AuthViewModel a nivel global (no requiere autenticación)
-    val authViewModel = remember {
-        AuthViewModel(
-            registerUseCase = Di.registerUseCase,
-            loginUseCase = Di.loginUseCase,
-            loginWithGoogleUseCase = Di.loginWithGoogleUseCase,
-            getCurrentUserUseCase = Di.getCurrentUserUseCase,
-            logoutUseCase = Di.logoutUseCase
-        )
-    }
-
-    // Observar el estado de autenticación
+    val authViewModel = hiltViewModel<com.vicpoo.shopy.presentation.viewmodels.AuthViewModel>()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-
-    // Crear CartViewModel solo cuando hay usuario autenticado
-    val cartViewModel = remember(currentUser != null) {
-        if (currentUser != null) {
-            CartViewModel(
-                getCartItemsUseCase = Di.getCartItemsUseCase,
-                addToCartUseCase = Di.addToCartUseCase,
-                removeFromCartUseCase = Di.removeFromCartUseCase,
-                updateCartQuantityUseCase = Di.updateCartQuantityUseCase,
-                clearCartUseCase = Di.clearCartUseCase
-            )
-        } else {
-            null
-        }
-    }
-
-    // Crear NotificationViewModel solo cuando hay usuario autenticado
-    val notificationViewModel = remember(currentUser != null) {
-        if (currentUser != null) {
-            NotificationViewModel(
-                createNotificationUseCase = Di.createNotificationUseCase,
-                getNotificationsUseCase = Di.getNotificationsUseCase,
-                markAsReadUseCase = Di.markNotificationAsReadUseCase,
-                markAllAsReadUseCase = Di.markAllNotificationsAsReadUseCase,
-                deleteNotificationUseCase = Di.deleteNotificationUseCase,
-                getUnreadCountUseCase = Di.getUnreadNotificationCountUseCase
-            )
-        } else {
-            null
-        }
-    }
 
     NavHost(
         navController = navController,
@@ -77,7 +32,6 @@ fun AppNavigation() {
     ) {
         composable(Screen.Login.route) {
             LoginScreen(
-                authViewModel = authViewModel,
                 navController = navController,
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
@@ -92,7 +46,6 @@ fun AppNavigation() {
 
         composable(Screen.Register.route) {
             RegisterScreen(
-                authViewModel = authViewModel,
                 navController = navController,
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
@@ -108,12 +61,8 @@ fun AppNavigation() {
         }
 
         composable(Screen.Main.route) {
-            // Solo mostrar MainScreen si hay usuario autenticado
-            if (currentUser != null && cartViewModel != null && notificationViewModel != null) {
+            if (currentUser != null) {
                 MainScreen(
-                    authViewModel = authViewModel,
-                    cartViewModel = cartViewModel,
-                    notificationViewModel = notificationViewModel,
                     navController = navController,
                     onLogout = {
                         authViewModel.logout()
@@ -132,7 +81,6 @@ fun AppNavigation() {
                     }
                 )
             } else {
-                // Redirigir al login si no hay usuario
                 LaunchedEffect(Unit) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Main.route) { inclusive = true }
@@ -143,20 +91,7 @@ fun AppNavigation() {
 
         composable(Screen.Seller.route) {
             if (currentUser != null) {
-                val sellerViewModel = remember {
-                    SellerViewModel(
-                        getCurrentUserUseCase = Di.getCurrentUserUseCase,
-                        changeUserRoleUseCase = Di.changeUserRoleUseCase,
-                        getClothesBySellerUseCase = Di.getClothesBySellerUseCase,
-                        observeClothesBySellerUseCase = Di.observeClothesBySellerUseCase,
-                        createClothUseCase = Di.createClothUseCase,
-                        updateClothUseCase = Di.updateClothUseCase,
-                        deleteClothUseCase = Di.deleteClothUseCase
-                    )
-                }
-
                 SellerScreen(
-                    sellerViewModel = sellerViewModel,
                     navController = navController,
                     onBack = { navController.popBackStack() }
                 )
@@ -170,9 +105,8 @@ fun AppNavigation() {
         }
 
         composable(Screen.Cart.route) {
-            if (currentUser != null && cartViewModel != null) {
+            if (currentUser != null) {
                 CartScreen(
-                    cartViewModel = cartViewModel,
                     navController = navController,
                     onBack = { navController.popBackStack() }
                 )
@@ -186,9 +120,8 @@ fun AppNavigation() {
         }
 
         composable(Screen.Notifications.route) {
-            if (currentUser != null && notificationViewModel != null) {
+            if (currentUser != null) {
                 NotificationScreen(
-                    notificationViewModel = notificationViewModel,
                     navController = navController,
                     onBack = { navController.popBackStack() },
                     onProductClick = { productId ->
