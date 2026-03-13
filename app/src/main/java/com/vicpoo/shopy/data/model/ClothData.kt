@@ -1,3 +1,4 @@
+//ClothData.kt
 package com.vicpoo.shopy.data.model
 
 data class ClothData(

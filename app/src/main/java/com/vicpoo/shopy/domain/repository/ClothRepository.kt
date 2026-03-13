@@ -1,3 +1,4 @@
+//ClothRepository.kt
 package com.vicpoo.shopy.domain.repository
 
 import com.vicpoo.shopy.domain.model.Cloth

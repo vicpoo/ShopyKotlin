@@ -1,3 +1,4 @@
+//ClothUseCases.kt
 package com.vicpoo.shopy.domain.usecase
 
 import com.vicpoo.shopy.domain.model.Cloth

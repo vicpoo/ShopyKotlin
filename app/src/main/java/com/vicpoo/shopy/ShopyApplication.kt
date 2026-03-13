@@ -1,3 +1,4 @@
+//MainActivity.kt
 package com.vicpoo.shopy
 
 import android.app.Application

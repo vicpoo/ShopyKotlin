@@ -1,3 +1,4 @@
+//NotificationData.kt
 package com.vicpoo.shopy.data.model
 
 data class NotificationData(

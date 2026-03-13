@@ -36,12 +36,16 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import kotlinx.coroutines.launch
 import com.vicpoo.shopy.core.utils.Base64ImageUtils
 import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.presentation.components.BecomeSellerDialog
-import com.vicpoo.shopy.presentation.viewmodels.*
+import com.vicpoo.shopy.presentation.viewmodels.MainViewModel
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,36 +55,30 @@ fun MainScreen(
     onNavigateToSeller: () -> Unit,
     onNavigateToCart: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    authViewModel: AuthViewModel = hiltViewModel(),
-    cartViewModel: CartViewModel = hiltViewModel(),
-    notificationViewModel: NotificationViewModel = hiltViewModel(),
-    clothViewModel: ClothViewModel = hiltViewModel(),
-    sellerViewModel: SellerViewModel = hiltViewModel()
+    viewModel: MainViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val currentUser by authViewModel.currentUser.collectAsState()
-
-    // 👇 CORREGIDO: Eliminado el parámetro context
-    LaunchedEffect(Unit) {
-        notificationViewModel.initSound()
-    }
-
-    val products by clothViewModel.clothes.collectAsState()
-    val isLoadingProducts by clothViewModel.isLoading.collectAsState()
-    val isRefreshing by clothViewModel.isRefreshing.collectAsState()
-    val unreadNotifications by notificationViewModel.unreadCount.collectAsState()
-
-    LaunchedEffect(Unit) {
-        if (products.isEmpty() && !isLoadingProducts) {
-            clothViewModel.loadClothes()
-        }
-    }
-
-    val isSeller by sellerViewModel.isSeller.collectAsState()
-    val showDialog by sellerViewModel.showConfirmationDialog.collectAsState()
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
+    // Estados del ViewModel
+    val currentUser by viewModel.currentUser.collectAsState()
+    val products by viewModel.products.collectAsState()
+    val cartItemCount by viewModel.cartItemCount.collectAsState()
+    val unreadNotifications by viewModel.unreadNotifications.collectAsState()
+    val isSeller by viewModel.isSeller.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val isRefreshing by viewModel.isRefreshing.collectAsState()
+    val isOnline by viewModel.isOnline.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val showDialog by viewModel.showBecomeSellerDialog.collectAsState()
+
+    // Estado para el drawer
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+
+    // Estado para scroll y refresh manual
+    val listState = rememberLazyListState()
+
+    // Vibrator setup
     val vibrator = remember(context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -91,32 +89,31 @@ fun MainScreen(
         }
     }
 
-    fun vibrate() {
-        val hasVibratePermission = ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.VIBRATE
-        ) == PackageManager.PERMISSION_GRANTED
-
-        if (!hasVibratePermission) return
-
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(50)
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+    // Mostrar errores
+    LaunchedEffect(error) {
+        error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.clearError()
         }
     }
 
-    fun addToCart(cloth: Cloth) {
-        vibrate()
-        cartViewModel.addToCart(cloth.id)
-        Toast.makeText(context, "${cloth.name} añadido al carrito", Toast.LENGTH_SHORT).show()
+    // Función para vibrar al agregar al carrito
+    fun vibrate() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator.vibrate(50)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
+    // Layout principal
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -130,6 +127,7 @@ fun MainScreen(
                 )
             )
     ) {
+        // Decoración con Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             val path = Path().apply {
                 moveTo(size.width * 0.9f, size.height * 0.1f)
@@ -155,6 +153,7 @@ fun MainScreen(
             )
         }
 
+        // Modal Navigation Drawer
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -163,17 +162,31 @@ fun MainScreen(
                 ) {
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    Text(
-                        "Menú",
-                        modifier = Modifier.padding(20.dp),
-                        color = Color.White,
-                        fontSize = 22.sp
-                    )
+                    // Header del drawer con información del usuario
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Text(
+                            "Hola, ${currentUser?.name ?: "Usuario"}",
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            currentUser?.email ?: "",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
 
+                    Divider(color = Color.Gray.copy(alpha = 0.3f))
+
+                    // Items del drawer
                     NavigationDrawerItem(
                         label = {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("Notificaciones", color = Color.White)
                                 if (unreadNotifications > 0) {
@@ -200,7 +213,20 @@ fun MainScreen(
                     )
 
                     NavigationDrawerItem(
-                        label = { Text("Carrito", color = Color.White) },
+                        label = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Carrito", color = Color.White)
+                                if (cartItemCount > 0) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Badge(
+                                        containerColor = Color(0xFFFF2E92),
+                                        content = { Text(cartItemCount.toString()) }
+                                    )
+                                }
+                            }
+                        },
                         selected = false,
                         onClick = {
                             scope.launch { drawerState.close() }
@@ -228,7 +254,7 @@ fun MainScreen(
                             if (isSeller) {
                                 onNavigateToSeller()
                             } else {
-                                sellerViewModel.showBecomeSellerDialog()
+                                viewModel.showBecomeSellerDialog()
                             }
                         },
                         icon = {
@@ -240,13 +266,22 @@ fun MainScreen(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.weight(1f))
 
+                    // Botón de logout al final
                     Button(
-                        onClick = onLogout,
-                        modifier = Modifier.padding(20.dp),
+                        onClick = {
+                            scope.launch {
+                                drawerState.close()
+                                viewModel.logout()
+                                onLogout()
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xEEBD2B6E)
+                            containerColor = Color(0xFFEEBD2B6E)
                         )
                     ) {
                         Text("Cerrar sesión")
@@ -254,15 +289,27 @@ fun MainScreen(
                 }
             }
         ) {
+            // Scaffold principal
             Scaffold(
                 containerColor = Color.Transparent,
                 topBar = {
                     TopAppBar(
                         title = {
-                            Text(
-                                currentUser?.name ?: "Usuario",
-                                color = Color.White
-                            )
+                            Column {
+                                Text(
+                                    "SHOPY",
+                                    color = Color(0xFFFF2E92),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (!isOnline) {
+                                    Text(
+                                        "📶 Modo offline",
+                                        color = Color.Yellow,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                            }
                         },
                         navigationIcon = {
                             IconButton(onClick = {
@@ -270,12 +317,13 @@ fun MainScreen(
                             }) {
                                 Icon(
                                     Icons.Default.Menu,
-                                    contentDescription = null,
+                                    contentDescription = "Menú",
                                     tint = Color.White
                                 )
                             }
                         },
                         actions = {
+                            // Botón de notificaciones con badge
                             IconButton(onClick = onNavigateToNotifications) {
                                 Box {
                                     Icon(
@@ -294,12 +342,25 @@ fun MainScreen(
                                     }
                                 }
                             }
+
+                            // Botón de carrito con badge
                             IconButton(onClick = onNavigateToCart) {
-                                Icon(
-                                    Icons.Default.ShoppingCart,
-                                    contentDescription = "Carrito",
-                                    tint = Color.White
-                                )
+                                Box {
+                                    Icon(
+                                        Icons.Default.ShoppingCart,
+                                        contentDescription = "Carrito",
+                                        tint = Color.White
+                                    )
+                                    if (cartItemCount > 0) {
+                                        Badge(
+                                            containerColor = Color(0xFFFF2E92),
+                                            content = { Text(cartItemCount.toString()) },
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .offset(x = 8.dp, y = (-8).dp)
+                                        )
+                                    }
+                                }
                             }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
@@ -307,41 +368,97 @@ fun MainScreen(
                         )
                     )
                 }
-            ) { padding ->
+            ) { paddingValues ->
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
+                        .padding(paddingValues)
                 ) {
-                    if (isLoadingProducts && products.isEmpty()) {
+                    // Contenido principal
+                    if (isLoading && products.isEmpty()) {
+                        // Loading inicial
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            CircularProgressIndicator(color = Color(0xFFFF2E92))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(
+                                    color = Color(0xFFFF2E92)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "Cargando productos...",
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else if (products.isEmpty()) {
+                        // Empty state
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    Icons.Default.Store,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(80.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    "No hay productos disponibles",
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { viewModel.refreshProducts() },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFFF2E92)
+                                    ),
+                                    enabled = isOnline
+                                ) {
+                                    Text("Reintentar")
+                                }
+                            }
                         }
                     } else {
+                        // Lista de productos con swipe to refresh manual
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(24.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            items(products) { product ->
+                            items(
+                                items = products,
+                                key = { it.id }
+                            ) { product ->
                                 ProductCard(
                                     cloth = product,
-                                    onAddToCart = { addToCart(product) }
+                                    onAddToCart = {
+                                        vibrate()
+                                        viewModel.addToCart(product.id, product.name)
+                                        Toast.makeText(
+                                            context,
+                                            "${product.name} añadido al carrito",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 )
                             }
                         }
                     }
 
+                    // Indicador de refresh manual
                     if (isRefreshing) {
                         CircularProgressIndicator(
                             color = Color(0xFFFF2E92),
                             strokeWidth = 2.dp,
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(36.dp)
                                 .align(Alignment.TopCenter)
                                 .padding(top = 8.dp)
                         )
@@ -351,11 +468,12 @@ fun MainScreen(
         }
     }
 
+    // Dialog para convertirse en vendedor
     if (showDialog) {
         BecomeSellerDialog(
-            onConfirm = { sellerViewModel.becomeSeller() },
-            onDismiss = { sellerViewModel.hideBecomeSellerDialog() },
-            isLoading = sellerViewModel.isLoading.collectAsState().value
+            onConfirm = { viewModel.becomeSeller() },
+            onDismiss = { viewModel.hideBecomeSellerDialog() },
+            isLoading = isLoading
         )
     }
 }
@@ -368,10 +486,12 @@ fun ProductCard(
     var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     var isLoadingImage by remember { mutableStateOf(false) }
 
-    LaunchedEffect(cloth.image) {
-        if (cloth.image != null && cloth.image!!.isNotEmpty() && imageBitmap == null) {
+    // Cargar imagen cuando cambie el producto
+    LaunchedEffect(cloth.id, cloth.image) {
+        if (cloth.image != null && cloth.image!!.isNotEmpty()) {
             isLoadingImage = true
             try {
+                // Detectar si es Base64
                 if (cloth.image!!.startsWith("/9j/") || cloth.image!!.length > 100) {
                     val bitmap = Base64ImageUtils.base64ToBitmap(cloth.image!!)
                     imageBitmap = bitmap?.asImageBitmap()
@@ -381,6 +501,8 @@ fun ProductCard(
             } finally {
                 isLoadingImage = false
             }
+        } else {
+            imageBitmap = null
         }
     }
 
@@ -392,65 +514,91 @@ fun ProductCard(
         border = BorderStroke(
             1.dp,
             Color.White.copy(alpha = 0.1f)
-        )
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(18.dp),
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Imagen del producto
             Box(
                 modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color.Gray.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
                 when {
-                    isLoadingImage -> CircularProgressIndicator(
-                        color = Color(0xFFFF2E92),
-                        strokeWidth = 2.dp,
-                        modifier = Modifier.size(30.dp)
-                    )
-                    imageBitmap != null -> Image(
-                        bitmap = imageBitmap!!,
-                        contentDescription = cloth.name,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    else -> Icon(
-                        Icons.Default.Image,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(40.dp)
-                    )
+                    isLoadingImage -> {
+                        CircularProgressIndicator(
+                            color = Color(0xFFFF2E92),
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+                    imageBitmap != null -> {
+                        Image(
+                            bitmap = imageBitmap!!,
+                            contentDescription = cloth.name,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                    }
+                    else -> {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(40.dp)
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Información del producto
             Column(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    cloth.name,
+                    text = cloth.name,
                     color = Color.White,
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2
                 )
+
                 Text(
-                    "$${cloth.price ?: 0}",
+                    text = "$${String.format("%.2f", cloth.price ?: 0.0)}",
                     color = Color(0xFFFF2E92),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium
                 )
-                Text(
-                    "Tallas: ${cloth.size ?: "N/A"}",
-                    color = Color.LightGray,
-                    fontSize = 12.sp
-                )
+
+                if (!cloth.size.isNullOrBlank()) {
+                    Text(
+                        text = "Tallas: ${cloth.size}",
+                        color = Color.LightGray,
+                        fontSize = 12.sp
+                    )
+                }
+
+                if (cloth.stock != null && cloth.stock > 0) {
+                    Text(
+                        text = "Stock: ${cloth.stock}",
+                        color = Color.Green.copy(alpha = 0.7f),
+                        fontSize = 11.sp
+                    )
+                }
             }
 
+            // Botón de agregar al carrito
             IconButton(
                 onClick = onAddToCart,
                 modifier = Modifier

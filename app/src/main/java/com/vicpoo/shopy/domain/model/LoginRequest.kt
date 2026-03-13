@@ -1,3 +1,4 @@
+//LoginRequest.kt
 package com.vicpoo.shopy.domain.model
 
 data class LoginRequest(

@@ -1,3 +1,4 @@
+//AuthViewModel.kt
 package com.vicpoo.shopy.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel

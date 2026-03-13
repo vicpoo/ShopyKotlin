@@ -1,3 +1,4 @@
+//ClothDialog.kt
 package com.vicpoo.shopy.presentation.components
 
 import android.content.Intent

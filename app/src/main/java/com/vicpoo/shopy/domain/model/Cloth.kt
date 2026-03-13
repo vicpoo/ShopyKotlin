@@ -1,3 +1,4 @@
+//Cloth.kt
 package com.vicpoo.shopy.domain.model
 
 data class Cloth(

@@ -93,6 +93,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // Pull to refresh (Material clásico necesario para SwipeRefresh)
+    implementation("androidx.compose.material:material")
+
+// Animaciones Compose
+    implementation("androidx.compose.animation:animation")
+
     // ---------------- NAVIGATION ----------------
     implementation(libs.androidx.navigation.compose)
 

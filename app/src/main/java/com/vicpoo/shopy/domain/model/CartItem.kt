@@ -1,3 +1,4 @@
+//CartItem.kt
 package com.vicpoo.shopy.domain.model
 
 data class CartItem(

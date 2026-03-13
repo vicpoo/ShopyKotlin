@@ -1,3 +1,4 @@
+//AppModule.kt
 package com.vicpoo.shopy.di
 
 import com.google.firebase.auth.FirebaseAuth
