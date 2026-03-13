@@ -1,4 +1,4 @@
-//MainScreen.kt
+// presentation/screens/MainScreen.kt
 package com.vicpoo.shopy.presentation.screens
 
 import android.Manifest
@@ -36,14 +36,13 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vicpoo.shopy.core.utils.Base64ImageUtils
 import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.presentation.components.BecomeSellerDialog
 import com.vicpoo.shopy.presentation.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 
@@ -60,22 +59,25 @@ fun MainScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Estados del ViewModel
-    val currentUser by viewModel.currentUser.collectAsState()
-    val products by viewModel.products.collectAsState()
-    val cartItemCount by viewModel.cartItemCount.collectAsState()
-    val unreadNotifications by viewModel.unreadNotifications.collectAsState()
-    val isSeller by viewModel.isSeller.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val isRefreshing by viewModel.isRefreshing.collectAsState()
-    val isOnline by viewModel.isOnline.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val showDialog by viewModel.showBecomeSellerDialog.collectAsState()
+    // Estados del ViewModel - usando collectAsStateWithLifecycle para mejor manejo del ciclo de vida
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+
+    // Para el Flow de products, necesitamos convertirlo a State
+    val products by viewModel.products.collectAsStateWithLifecycle(initialValue = emptyList())
+
+    val cartItemCount by viewModel.cartItemCount.collectAsStateWithLifecycle()
+    val unreadNotifications by viewModel.unreadNotifications.collectAsStateWithLifecycle()
+    val isSeller by viewModel.isSeller.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
+    val isOnline by viewModel.isOnline.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val showDialog by viewModel.showBecomeSellerDialog.collectAsStateWithLifecycle()
 
     // Estado para el drawer
     val drawerState = rememberDrawerState(DrawerValue.Closed)
 
-    // Estado para scroll y refresh manual
+    // Estado para scroll
     val listState = rememberLazyListState()
 
     // Vibrator setup
@@ -424,7 +426,7 @@ fun MainScreen(
                             }
                         }
                     } else {
-                        // Lista de productos con swipe to refresh manual
+                        // Lista de productos
                         LazyColumn(
                             state = listState,
                             modifier = Modifier

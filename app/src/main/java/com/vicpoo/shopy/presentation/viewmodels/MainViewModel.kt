@@ -1,4 +1,4 @@
-//MainViewModel.kt
+// presentation/viewmodels/MainViewModel.kt
 package com.vicpoo.shopy.presentation.viewmodels
 
 import android.content.Context
@@ -12,11 +12,14 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vicpoo.shopy.R
+import com.vicpoo.shopy.data.local.dao.ProductDao
+import com.vicpoo.shopy.data.local.entity.ProductEntity
 import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.domain.model.User
 import com.vicpoo.shopy.domain.usecase.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -31,7 +34,9 @@ class MainViewModel @Inject constructor(
     private val addToCartUseCase: AddToCartUseCase,
     private val getUnreadNotificationCountUseCase: GetUnreadNotificationCountUseCase,
     private val changeUserRoleUseCase: ChangeUserRoleUseCase,
+    private val observeAllClothesUseCase: ObserveAllClothesUseCase,
     private val observeClothesBySellerUseCase: ObserveClothesBySellerUseCase,
+    private val productDao: ProductDao,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -39,12 +44,22 @@ class MainViewModel @Inject constructor(
         private const val TAG = "MainViewModel"
     }
 
-    // Estados de UI
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
-    private val _products = MutableStateFlow<List<Cloth>>(emptyList())
-    val products: StateFlow<List<Cloth>> = _products.asStateFlow()
+
+    val products: StateFlow<List<Cloth>> = productDao
+        .getAllProducts()
+        .map { entities: List<ProductEntity> -> entities.map { it.toDomain() } }
+        .catch { e ->
+            Log.e(TAG, "Error observando Room", e)
+            emit(emptyList())
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList()
+        )
 
     private val _cartItemCount = MutableStateFlow(0)
     val cartItemCount: StateFlow<Int> = _cartItemCount.asStateFlow()
@@ -70,95 +85,71 @@ class MainViewModel @Inject constructor(
     private val _showBecomeSellerDialog = MutableStateFlow(false)
     val showBecomeSellerDialog: StateFlow<Boolean> = _showBecomeSellerDialog.asStateFlow()
 
-    // SoundPool para notificaciones
+
     private var soundPool: SoundPool? = null
     private var notificationSoundId: Int = 0
     private var isSoundLoaded = false
 
-    // Job para el polling
-    private var pollingJob: kotlinx.coroutines.Job? = null
+    private var firebaseJob: Job? = null
+    private var notificationJob: Job? = null
+
 
     init {
-        setupConnectivityListener()
         initSound()
+        setupConnectivityListener()
         observeUser()
     }
 
     private fun initSound() {
         try {
-            Log.d(TAG, "Inicializando SoundPool")
             val audioAttributes = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
-
             soundPool = SoundPool.Builder()
                 .setMaxStreams(5)
                 .setAudioAttributes(audioAttributes)
                 .build()
-
             soundPool?.setOnLoadCompleteListener { _, _, status ->
-                if (status == 0) {
-                    isSoundLoaded = true
-                    Log.d(TAG, "Sonido cargado correctamente")
-                } else {
-                    Log.e(TAG, "Error al cargar sonido, status: $status")
-                    // Forzar carga para no bloquear
-                    isSoundLoaded = true
-                }
+                isSoundLoaded = status == 0
             }
-
-            // Intentar cargar el sonido
             notificationSoundId = soundPool?.load(context, R.raw.notification_sound, 1) ?: 0
-            Log.d(TAG, "Sound ID: $notificationSoundId")
-
-            // Si el ID es 0, algo salió mal
-            if (notificationSoundId == 0) {
-                isSoundLoaded = true // Forzar para no bloquear
-            }
         } catch (e: Exception) {
             Log.e(TAG, "Error initSound", e)
-            isSoundLoaded = true // Fallback
         }
     }
 
     private fun playNotificationSound() {
         try {
             if (isSoundLoaded && notificationSoundId != 0) {
-                val playResult = soundPool?.play(notificationSoundId, 1f, 1f, 0, 0, 1f)
-                Log.d(TAG, "Reproduciendo sonido, resultado: $playResult")
-            } else {
-                Log.e(TAG, "Sonido no cargado o ID inválido. isSoundLoaded: $isSoundLoaded, soundId: $notificationSoundId")
+                soundPool?.play(notificationSoundId, 1f, 1f, 0, 0, 1f)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error al reproducir sonido", e)
+            Log.e(TAG, "Error reproduciendo sonido", e)
         }
     }
 
     private fun releaseSound() {
-        try {
-            pollingJob?.cancel()
-            soundPool?.release()
-            soundPool = null
-            isSoundLoaded = false
-            Log.d(TAG, "SoundPool liberado")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error al liberar SoundPool", e)
-        }
+        soundPool?.release()
+        soundPool = null
+        isSoundLoaded = false
     }
 
-    private fun setupConnectivityListener() {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+    private fun setupConnectivityListener() {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                Log.d(TAG, "📶 Online")
                 _isOnline.value = true
-                // Cuando volvemos online, refrescamos datos
-                refreshProducts()
+                viewModelScope.launch { startFirebaseSync() }
             }
 
             override fun onLost(network: Network) {
+                Log.d(TAG, "📴 Offline — usando Room")
                 _isOnline.value = false
+                stopFirebaseSync()
             }
         }
 
@@ -167,124 +158,148 @@ class MainViewModel @Inject constructor(
             .build()
 
         try {
-            connectivityManager.registerNetworkCallback(request, networkCallback)
-
-            // Verificar estado inicial
-            val activeNetwork = connectivityManager.activeNetwork
-            val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
-            _isOnline.value = capabilities != null &&
-                    capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            cm.registerNetworkCallback(request, callback)
+            val active = cm.getNetworkCapabilities(cm.activeNetwork)
+            _isOnline.value = active?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error registrando network callback", e)
         }
     }
+
+
+    private fun startFirebaseSync() {
+        stopFirebaseSync()
+        if (!_isOnline.value) return
+
+        Log.d(TAG, "🔥 Iniciando sync Firebase → Room")
+
+        firebaseJob = viewModelScope.launch {
+
+            // A. Listener general (todos los productos)
+            launch {
+                observeAllClothesUseCase()
+                    .catch { e ->
+                        Log.e(TAG, "Error listener todos los productos", e)
+                        emit(emptyList())
+                    }
+                    .collect { firebaseProducts: List<Cloth> ->
+                        Log.d(TAG, "🔄 Firebase → ${firebaseProducts.size} productos → Room")
+                        val entities = firebaseProducts.map { ProductEntity.fromDomain(it) }
+                        productDao.replaceAllProducts(entities)
+                    }
+            }
+
+            // B. Listener del vendedor (solo si es vendedor)
+            val uid = _currentUser.value?.uid
+            if (_isSeller.value && uid != null) {
+                launch {
+                    observeClothesBySellerUseCase(uid)
+                        .catch { e ->
+                            Log.e(TAG, "Error listener vendedor", e)
+                            emit(emptyList())
+                        }
+                        .collect { sellerProducts: List<Cloth> ->
+                            Log.d(TAG, "👤 Productos vendedor: ${sellerProducts.size}")
+                            if (sellerProducts.isNotEmpty()) {
+                                val entities = sellerProducts.map { ProductEntity.fromDomain(it) }
+                                productDao.insertAllProducts(entities)
+                            }
+                        }
+                }
+            }
+        }
+    }
+
+    private fun stopFirebaseSync() {
+        firebaseJob?.cancel()
+        firebaseJob = null
+        Log.d(TAG, "🛑 Firebase sync detenido")
+    }
+
 
     private fun observeUser() {
         viewModelScope.launch {
-            getCurrentUserUseCase().collect { user ->
-                _currentUser.value = user
-                _isSeller.value = user?.isSeller == true
-
-                if (user != null) {
-                    // Iniciar todos los listeners cuando hay usuario
-                    loadProductsFromNetwork()
-                    startPolling()
-                    observeCartCount()
-                    observeNotifications()
-                } else {
-                    // Limpiar datos si no hay usuario
-                    pollingJob?.cancel()
-                    _products.value = emptyList()
-                    _cartItemCount.value = 0
-                    _unreadNotifications.value = 0
+            getCurrentUserUseCase()
+                .catch { e ->
+                    Log.e(TAG, "Error observando usuario", e)
+                    emit(null)
                 }
-            }
-        }
-    }
+                .collect { user ->
+                    _currentUser.value = user
+                    _isSeller.value = user?.isSeller == true
 
-    private fun startPolling() {
-        pollingJob?.cancel()
-        pollingJob = viewModelScope.launch {
-            var lastSize = _products.value.size
-            while (true) {
-                delay(3000) // Revisar cada 3 segundos
-                if (_isOnline.value) {
-                    try {
-                        Log.d(TAG, "Polling: verificando productos...")
-                        val freshProducts = getAllClothesUseCase()
-
-                        if (freshProducts.size > lastSize) {
-                            Log.d(TAG, "¡Nuevos productos detectados! Antes: $lastSize, Ahora: ${freshProducts.size}")
-                            _products.value = freshProducts
-                            playNotificationSound()
-                            lastSize = freshProducts.size
-                        } else if (freshProducts.size < lastSize) {
-                            // Se eliminaron productos
-                            _products.value = freshProducts
-                            lastSize = freshProducts.size
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error en polling", e)
+                    if (user != null) {
+                        Log.d(TAG, "👤 Usuario: ${user.email}, seller: ${user.isSeller}")
+                        if (_isOnline.value) startFirebaseSync()
+                        observeCartCount()
+                        startNotificationPolling()
+                    } else {
+                        Log.d(TAG, "👤 Sesión cerrada")
+                        stopFirebaseSync()
+                        stopNotificationPolling()
+                        _cartItemCount.value = 0
+                        _unreadNotifications.value = 0
                     }
                 }
-            }
         }
     }
 
-    private suspend fun loadProductsFromNetwork() {
-        try {
-            _isLoading.value = true
-            val products = getAllClothesUseCase()
-            _products.value = products
-            Log.d(TAG, "Productos cargados: ${products.size}")
-        } catch (e: Exception) {
-            _error.value = "Error al cargar productos: ${e.message}"
-            Log.e(TAG, "Error cargando productos", e)
-        } finally {
-            _isLoading.value = false
-        }
-    }
 
     private fun observeCartCount() {
         viewModelScope.launch {
-            getCartItemsUseCase().collect { cartItems ->
-                _cartItemCount.value = cartItems.sumOf { it.quantity }
-            }
+            getCartItemsUseCase()
+                .catch { e ->
+                    Log.e(TAG, "Error cart count", e)
+                    emit(emptyList())
+                }
+                .collect { items -> _cartItemCount.value = items.sumOf { it.quantity } }
         }
     }
 
-    private fun observeNotifications() {
-        viewModelScope.launch {
+
+    private fun startNotificationPolling() {
+        stopNotificationPolling()
+        notificationJob = viewModelScope.launch {
             var lastCount = 0
             while (true) {
                 try {
                     val count = getUnreadNotificationCountUseCase()
                     if (count > lastCount) {
-                        Log.d(TAG, "¡Nueva notificación detectada! ($count)")
+                        Log.d(TAG, "🔔 Nueva notificación ($count)")
                         playNotificationSound()
                     }
                     _unreadNotifications.value = count
                     lastCount = count
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error observando notificaciones", e)
+                    Log.e(TAG, "Error en notificaciones", e)
                 }
-                delay(3000)
+                delay(5_000)
             }
         }
     }
 
-    fun refreshProducts() {
-        if (_isRefreshing.value || !_isOnline.value) return
+    private fun stopNotificationPolling() {
+        notificationJob?.cancel()
+        notificationJob = null
+    }
 
+
+    fun refreshProducts() {
+        if (_isRefreshing.value) return
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val freshProducts = getAllClothesUseCase()
-                _products.value = freshProducts
-                Log.d(TAG, "Productos refrescados: ${freshProducts.size}")
+                if (_isOnline.value) {
+                    Log.d(TAG, "🔄 Refresh manual desde Firebase")
+                    val fresh = getAllClothesUseCase()
+                    val entities = fresh.map { ProductEntity.fromDomain(it) }
+                    productDao.replaceAllProducts(entities)
+                } else {
+                    Log.d(TAG, "📴 Offline — Room ya está actualizado")
+                }
             } catch (e: Exception) {
                 _error.value = "Error al actualizar: ${e.message}"
-                Log.e(TAG, "Error refrescando", e)
+                Log.e(TAG, "Error refresh", e)
             } finally {
                 _isRefreshing.value = false
             }
@@ -295,35 +310,27 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 addToCartUseCase(productId)
-                Log.d(TAG, "Producto agregado al carrito: $productName")
+                Log.d(TAG, "🛒 Agregado: $productName")
             } catch (e: Exception) {
                 _error.value = "Error al agregar al carrito"
-                Log.e(TAG, "Error adding to cart", e)
+                Log.e(TAG, "Error addToCart", e)
             }
         }
     }
 
-    fun showBecomeSellerDialog() {
-        _showBecomeSellerDialog.value = true
-    }
-
-    fun hideBecomeSellerDialog() {
-        _showBecomeSellerDialog.value = false
-    }
+    fun showBecomeSellerDialog() { _showBecomeSellerDialog.value = true }
+    fun hideBecomeSellerDialog() { _showBecomeSellerDialog.value = false }
 
     fun becomeSeller() {
         viewModelScope.launch {
             val user = _currentUser.value ?: return@launch
-
             _isLoading.value = true
             try {
-                val updatedUser = changeUserRoleUseCase(user.uid, "seller")
-                _currentUser.value = updatedUser
+                val updated = changeUserRoleUseCase(user.uid, "seller")
+                _currentUser.value = updated
                 _isSeller.value = true
                 _showBecomeSellerDialog.value = false
-
-                // Refrescar productos para ver cambios
-                refreshProducts()
+                if (_isOnline.value) startFirebaseSync()
             } catch (e: Exception) {
                 _error.value = "Error al convertirse en vendedor: ${e.message}"
             } finally {
@@ -334,17 +341,32 @@ class MainViewModel @Inject constructor(
 
     fun logout() {
         viewModelScope.launch {
+            stopFirebaseSync()
+            stopNotificationPolling()
             logoutUseCase()
             _currentUser.value = null
         }
     }
 
-    fun clearError() {
-        _error.value = null
-    }
+    fun clearError() { _error.value = null }
 
     override fun onCleared() {
         super.onCleared()
+        stopFirebaseSync()
+        stopNotificationPolling()
         releaseSound()
     }
 }
+
+private fun ProductEntity.toDomain(): Cloth = Cloth(
+    id = id,
+    name = name,
+    description = description,
+    size = size,
+    price = price,
+    stock = stock,
+    image = image,
+    sellerId = sellerId,
+    createdAt = createdAt,
+    updatedAt = updatedAt
+)

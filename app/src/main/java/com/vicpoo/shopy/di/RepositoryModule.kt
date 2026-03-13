@@ -1,4 +1,4 @@
-//RepositoryModule.kt
+// di/RepositoryModule.kt
 package com.vicpoo.shopy.di
 
 import com.vicpoo.shopy.data.repository.*
@@ -28,7 +28,7 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCartRepository(
-        firebaseCartRepository: FirebaseCartRepository
+        roomCartRepository: RoomCartRepository // 👈 Cambiamos a RoomCartRepository
     ): CartRepository
 
     @Binds

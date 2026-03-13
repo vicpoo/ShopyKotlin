@@ -72,7 +72,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 
-    // Google Sign In
     implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // ---------------- ANDROIDX ----------------
@@ -93,16 +92,13 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
 
-    // Pull to refresh (Material clásico necesario para SwipeRefresh)
     implementation("androidx.compose.material:material")
-
-// Animaciones Compose
     implementation("androidx.compose.animation:animation")
 
     // ---------------- NAVIGATION ----------------
     implementation(libs.androidx.navigation.compose)
 
-    // ---------------- COIL (IMAGES) ----------------
+    // ---------------- COIL ----------------
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
 
@@ -116,6 +112,11 @@ dependencies {
     // ---------------- COROUTINES ----------------
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+
+    // ---------------- ROOM (CORREGIDO) ----------------
+    implementation("androidx.room:room-runtime:2.7.0")
+    implementation("androidx.room:room-ktx:2.7.0")
+    kapt("androidx.room:room-compiler:2.7.0")
 
     // ---------------- CAMERAX ----------------
     implementation("androidx.camera:camera-core:1.3.4")
