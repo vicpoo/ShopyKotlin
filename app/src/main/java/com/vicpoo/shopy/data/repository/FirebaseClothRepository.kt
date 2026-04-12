@@ -26,7 +26,6 @@ class FirebaseClothRepository @Inject constructor(
         private const val TAG = "FirebaseClothRepo"
     }
 
-
     override suspend fun getAllClothes(): List<Cloth> {
         return try {
             val snapshot = productsRef.get().await()
@@ -90,7 +89,6 @@ class FirebaseClothRepository @Inject constructor(
         }
     }
 
-
     override suspend fun createCloth(cloth: Cloth, imageFile: File?): Cloth {
         return try {
             Log.d(TAG, "Creando producto para seller: ${cloth.sellerId}")
@@ -111,6 +109,8 @@ class FirebaseClothRepository @Inject constructor(
                 put("sellerId", cloth.sellerId)
                 put("createdAt", System.currentTimeMillis())
                 put("updatedAt", System.currentTimeMillis())
+                put("averageRating", 0.0)
+                put("totalReviews", 0)
                 cloth.description?.let { put("description", it) }
                 cloth.size?.let { put("size", it) }
                 cloth.price?.let { put("price", it) }
@@ -191,7 +191,6 @@ class FirebaseClothRepository @Inject constructor(
         }
     }
 
-
     override suspend fun searchByName(name: String): List<Cloth> {
         return getAllClothes().filter {
             it.name.contains(name, ignoreCase = true) ||
@@ -230,7 +229,9 @@ class FirebaseClothRepository @Inject constructor(
                 image = map["image"] as? String,
                 sellerId = map["sellerId"] as? String ?: "",
                 createdAt = (map["createdAt"] as? Long) ?: 0L,
-                updatedAt = (map["updatedAt"] as? Long) ?: 0L
+                updatedAt = (map["updatedAt"] as? Long) ?: 0L,
+                averageRating = (map["averageRating"] as? Number)?.toDouble() ?: 0.0,
+                totalReviews = (map["totalReviews"] as? Number)?.toInt() ?: 0
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error mapeando producto $id", e)

@@ -36,4 +36,11 @@ abstract class RepositoryModule {
     abstract fun bindNotificationRepository(
         firebaseNotificationRepository: FirebaseNotificationRepository
     ): NotificationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindReviewRepository(
+        firebaseReviewRepository: FirebaseReviewRepository
+    ): ReviewRepository
+
 }

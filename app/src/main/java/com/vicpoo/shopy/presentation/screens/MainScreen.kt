@@ -42,8 +42,8 @@ import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.presentation.components.BecomeSellerDialog
 import com.vicpoo.shopy.presentation.viewmodels.MainViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,12 +59,8 @@ fun MainScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Estados del ViewModel - usando collectAsStateWithLifecycle para mejor manejo del ciclo de vida
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
-
-    // Para el Flow de products, necesitamos convertirlo a State
     val products by viewModel.products.collectAsStateWithLifecycle(initialValue = emptyList())
-
     val cartItemCount by viewModel.cartItemCount.collectAsStateWithLifecycle()
     val unreadNotifications by viewModel.unreadNotifications.collectAsStateWithLifecycle()
     val isSeller by viewModel.isSeller.collectAsStateWithLifecycle()
@@ -74,13 +70,9 @@ fun MainScreen(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val showDialog by viewModel.showBecomeSellerDialog.collectAsStateWithLifecycle()
 
-    // Estado para el drawer
     val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    // Estado para scroll
     val listState = rememberLazyListState()
 
-    // Vibrator setup
     val vibrator = remember(context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -91,7 +83,6 @@ fun MainScreen(
         }
     }
 
-    // Mostrar errores
     LaunchedEffect(error) {
         error?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -99,7 +90,6 @@ fun MainScreen(
         }
     }
 
-    // Función para vibrar al agregar al carrito
     fun vibrate() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.VIBRATE) == PackageManager.PERMISSION_GRANTED) {
             try {
@@ -115,7 +105,6 @@ fun MainScreen(
         }
     }
 
-    // Layout principal
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -129,7 +118,6 @@ fun MainScreen(
                 )
             )
     ) {
-        // Decoración con Canvas
         Canvas(modifier = Modifier.fillMaxSize()) {
             val path = Path().apply {
                 moveTo(size.width * 0.9f, size.height * 0.1f)
@@ -155,7 +143,6 @@ fun MainScreen(
             )
         }
 
-        // Modal Navigation Drawer
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -164,7 +151,6 @@ fun MainScreen(
                 ) {
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Header del drawer con información del usuario
                     Column(
                         modifier = Modifier.padding(20.dp)
                     ) {
@@ -183,7 +169,6 @@ fun MainScreen(
 
                     Divider(color = Color.Gray.copy(alpha = 0.3f))
 
-                    // Items del drawer
                     NavigationDrawerItem(
                         label = {
                             Row(
@@ -270,7 +255,6 @@ fun MainScreen(
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    // Botón de logout al final
                     Button(
                         onClick = {
                             scope.launch {
@@ -291,7 +275,6 @@ fun MainScreen(
                 }
             }
         ) {
-            // Scaffold principal
             Scaffold(
                 containerColor = Color.Transparent,
                 topBar = {
@@ -325,7 +308,6 @@ fun MainScreen(
                             }
                         },
                         actions = {
-                            // Botón de notificaciones con badge
                             IconButton(onClick = onNavigateToNotifications) {
                                 Box {
                                     Icon(
@@ -345,7 +327,6 @@ fun MainScreen(
                                 }
                             }
 
-                            // Botón de carrito con badge
                             IconButton(onClick = onNavigateToCart) {
                                 Box {
                                     Icon(
@@ -376,9 +357,7 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                 ) {
-                    // Contenido principal
                     if (isLoading && products.isEmpty()) {
-                        // Loading inicial
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -395,7 +374,6 @@ fun MainScreen(
                             }
                         }
                     } else if (products.isEmpty()) {
-                        // Empty state
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -426,7 +404,6 @@ fun MainScreen(
                             }
                         }
                     } else {
-                        // Lista de productos
                         LazyColumn(
                             state = listState,
                             modifier = Modifier
@@ -448,13 +425,15 @@ fun MainScreen(
                                             "${product.name} añadido al carrito",
                                             Toast.LENGTH_SHORT
                                         ).show()
+                                    },
+                                    onProductClick = { productId ->
+                                        navController.navigate("product_detail/$productId")
                                     }
                                 )
                             }
                         }
                     }
 
-                    // Indicador de refresh manual
                     if (isRefreshing) {
                         CircularProgressIndicator(
                             color = Color(0xFFFF2E92),
@@ -470,7 +449,6 @@ fun MainScreen(
         }
     }
 
-    // Dialog para convertirse en vendedor
     if (showDialog) {
         BecomeSellerDialog(
             onConfirm = { viewModel.becomeSeller() },
@@ -483,17 +461,16 @@ fun MainScreen(
 @Composable
 fun ProductCard(
     cloth: Cloth,
-    onAddToCart: () -> Unit
+    onAddToCart: () -> Unit,
+    onProductClick: (String) -> Unit
 ) {
     var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     var isLoadingImage by remember { mutableStateOf(false) }
 
-    // Cargar imagen cuando cambie el producto
     LaunchedEffect(cloth.id, cloth.image) {
         if (cloth.image != null && cloth.image!!.isNotEmpty()) {
             isLoadingImage = true
             try {
-                // Detectar si es Base64
                 if (cloth.image!!.startsWith("/9j/") || cloth.image!!.length > 100) {
                     val bitmap = Base64ImageUtils.base64ToBitmap(cloth.image!!)
                     imageBitmap = bitmap?.asImageBitmap()
@@ -519,6 +496,7 @@ fun ProductCard(
         ),
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onProductClick(cloth.id) }
     ) {
         Row(
             modifier = Modifier
@@ -526,7 +504,6 @@ fun ProductCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen del producto
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -564,7 +541,6 @@ fun ProductCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Información del producto
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -600,7 +576,6 @@ fun ProductCard(
                 }
             }
 
-            // Botón de agregar al carrito
             IconButton(
                 onClick = onAddToCart,
                 modifier = Modifier

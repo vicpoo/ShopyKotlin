@@ -176,4 +176,34 @@ object UseCaseModule {
     @ViewModelScoped
     fun provideGetUnreadNotificationCountUseCase(repository: NotificationRepository): GetUnreadNotificationCountUseCase =
         GetUnreadNotificationCountUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideObserveReviewsForProductUseCase(repository: ReviewRepository): ObserveReviewsForProductUseCase =
+        ObserveReviewsForProductUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideAddReviewUseCase(repository: ReviewRepository): AddReviewUseCase =
+        AddReviewUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideUpdateReviewUseCase(repository: ReviewRepository): UpdateReviewUseCase =
+        UpdateReviewUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideDeleteReviewUseCase(repository: ReviewRepository): DeleteReviewUseCase =
+        DeleteReviewUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideGetUserReviewForProductUseCase(repository: ReviewRepository): GetUserReviewForProductUseCase =
+        GetUserReviewForProductUseCase(repository)
+
+    @Provides
+    @ViewModelScoped
+    fun provideGetAverageRatingUseCase(repository: ReviewRepository): GetAverageRatingUseCase =
+        GetAverageRatingUseCase(repository)
 }

@@ -1,10 +1,10 @@
-//SellerScreen.kt
 package com.vicpoo.shopy.presentation.screens
 
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -69,7 +69,6 @@ fun SellerScreen(
                 .padding(16.dp)
         ) {
 
-            // 🔥 HEADER PRO
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
@@ -93,7 +92,6 @@ fun SellerScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 📊 STATS
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -150,14 +148,16 @@ fun SellerScreen(
                         SellerProductItem(
                             cloth = cloth,
                             onEdit = { selectedCloth = cloth },
-                            onDelete = { viewModel.deleteCloth(cloth.id) }
+                            onDelete = { viewModel.deleteCloth(cloth.id) },
+                            onProductClick = { productId ->
+                                navController.navigate("seller_product_detail/$productId")
+                            }
                         )
                     }
                 }
             }
         }
 
-        // ➕ FAB
         FloatingActionButton(
             onClick = { showAddDialog = true },
             containerColor = Color(0xFFFF2E92),
@@ -168,7 +168,6 @@ fun SellerScreen(
             Icon(Icons.Default.Add, contentDescription = null)
         }
 
-        // ⏳ LOADING
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -181,7 +180,6 @@ fun SellerScreen(
         }
     }
 
-    // 🧾 DIALOG
     if (showAddDialog || selectedCloth != null) {
         ClothDialog(
             title = if (selectedCloth == null) "Agregar Producto" else "Editar Producto",
@@ -244,7 +242,8 @@ fun StatItem(title: String, value: String, color: Color) {
 fun SellerProductItem(
     cloth: Cloth,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onProductClick: (String) -> Unit
 ) {
     var imageBitmap by remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     var isLoadingImage by remember { mutableStateOf(false) }
@@ -265,7 +264,8 @@ fun SellerProductItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize()
+            .clickable { onProductClick(cloth.id) },
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White.copy(alpha = 0.05f)
@@ -278,7 +278,6 @@ fun SellerProductItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            // 🖼️ IMAGEN
             Box(
                 modifier = Modifier
                     .size(75.dp)
