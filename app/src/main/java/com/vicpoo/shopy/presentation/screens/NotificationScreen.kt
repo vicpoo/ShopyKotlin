@@ -1,9 +1,8 @@
 //NotificationScreen.kt
 package com.vicpoo.shopy.presentation.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,10 +24,8 @@ import androidx.navigation.NavController
 import com.vicpoo.shopy.domain.model.Notification
 import com.vicpoo.shopy.presentation.viewmodels.NotificationViewModel
 import java.text.SimpleDateFormat
-import androidx.compose.foundation.BorderStroke
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     navController: NavController,
@@ -46,64 +42,60 @@ fun NotificationScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF050505),
-                        Color(0xFF0B0B0F),
-                        Color(0xFF050505)
-                    )
+                    listOf(Color(0xFF050505), Color(0xFF0B0B0F))
                 )
             )
     ) {
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = Color.White
+
+            // 🔥 HEADER PRO
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                    }
+
+                    Text(
+                        text = "Notificaciones",
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
                     )
                 }
 
-                Text(
-                    text = "Notificaciones",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Row(
+                    modifier = Modifier.padding(start = 56.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$unreadCount sin leer",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
 
-                if (notifications.isNotEmpty()) {
-                    Box {
-                        IconButton(
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    if (notifications.isNotEmpty()) {
+                        TextButton(
                             onClick = { viewModel.markAllAsRead() }
                         ) {
-                            Icon(
-                                Icons.Default.DoneAll,
-                                contentDescription = "Marcar todas como leídas",
-                                tint = Color.White
-                            )
-                        }
-                        if (unreadCount > 0) {
-                            Badge(
-                                containerColor = Color(0xFFFF2E92),
-                                content = { Text(unreadCount.toString()) }
+                            Text(
+                                text = "Marcar todas",
+                                color = Color(0xFFFF2E92)
                             )
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.size(48.dp))
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // 🔕 VACÍO
             if (notifications.isEmpty() && !isLoading) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -117,20 +109,24 @@ fun NotificationScreen(
                             modifier = Modifier.size(80.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
                             text = "No hay notificaciones",
-                            fontSize = 16.sp,
                             color = Color.Gray
                         )
                     }
                 }
             } else {
+
+                // 📋 LISTA
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(notifications) { notification ->
+                    items(
+                        items = notifications,
+                        key = { it.id }
+                    ) { notification ->
                         NotificationItem(
                             notification = notification,
                             onMarkAsRead = { viewModel.markAsRead(notification.id) },
@@ -144,6 +140,7 @@ fun NotificationScreen(
             }
         }
 
+        // ⏳ LOADING
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -164,88 +161,103 @@ fun NotificationItem(
     onDelete: () -> Unit,
     onProductClick: () -> Unit
 ) {
-    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-    val date = Date(notification.timestamp)
-    val formattedDate = dateFormat.format(date)
+    val dateFormat = SimpleDateFormat("dd MMM • HH:mm", Locale.getDefault())
+    val formattedDate = dateFormat.format(Date(notification.timestamp))
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (notification.read)
-                Color.White.copy(alpha = 0.03f)
-            else
-                Color(0xFFFF2E92).copy(alpha = 0.1f)
-        ),
-        border = if (!notification.read)
-            BorderStroke(1.dp, Color(0xFFFF2E92))
-        else null
+            containerColor = Color.White.copy(alpha = 0.05f)
+        )
     ) {
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+
+            // 🟣 INDICADOR LATERAL
             Box(
                 modifier = Modifier
-                    .size(50.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .width(4.dp)
+                    .height(60.dp)
                     .background(
-                        if (notification.read)
-                            Color.Gray.copy(alpha = 0.2f)
-                        else
-                            Color(0xFFFF2E92).copy(alpha = 0.2f)
-                    ),
+                        if (notification.read) Color.Transparent else Color(0xFFFF2E92),
+                        RoundedCornerShape(10.dp)
+                    )
+            )
+
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 🔔 ICONO
+            Box(
+                modifier = Modifier
+                    .size(45.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFFF2E92).copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    if (notification.productId != null)
+                    imageVector = if (notification.productId != null)
                         Icons.Default.ShoppingBag
                     else
-                        Icons.Default.Info,
+                        Icons.Default.Notifications,
                     contentDescription = null,
-                    tint = if (notification.read) Color.Gray else Color(0xFFFF2E92),
-                    modifier = Modifier.size(30.dp)
+                    tint = Color(0xFFFF2E92),
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // 📝 TEXTO
             Column(
                 modifier = Modifier.weight(1f)
             ) {
+
                 Text(
                     text = notification.title,
-                    fontSize = 16.sp,
-                    fontWeight = if (notification.read) FontWeight.Normal else FontWeight.Bold,
-                    color = if (notification.read) Color.Gray else Color.White
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
+
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = notification.message,
-                    fontSize = 14.sp,
-                    color = if (notification.read) Color.Gray.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.sp,
+                    color = Color.Gray,
                     maxLines = 2
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = formattedDate,
                     fontSize = 11.sp,
-                    color = Color.Gray.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(top = 4.dp)
+                    color = Color.Gray.copy(alpha = 0.6f)
                 )
             }
 
-            Row {
+            // 🔘 BOTONES
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
                 if (!notification.read) {
                     IconButton(
                         onClick = onMarkAsRead,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             Icons.Default.Done,
-                            contentDescription = "Marcar como leída",
+                            contentDescription = "Leída",
                             tint = Color(0xFFFF2E92),
                             modifier = Modifier.size(16.dp)
                         )
@@ -255,12 +267,12 @@ fun NotificationItem(
                 if (notification.productId != null) {
                     IconButton(
                         onClick = onProductClick,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
                         Icon(
                             Icons.Default.Visibility,
-                            contentDescription = "Ver producto",
-                            tint = Color(0xFFFF2E92),
+                            contentDescription = "Ver",
+                            tint = Color.White,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -268,7 +280,7 @@ fun NotificationItem(
 
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(30.dp)
                 ) {
                     Icon(
                         Icons.Default.Delete,
