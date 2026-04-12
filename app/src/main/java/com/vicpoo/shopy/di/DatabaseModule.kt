@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.room.Room
 import com.vicpoo.shopy.data.local.ShopyDatabase
 import com.vicpoo.shopy.data.local.dao.CartDao
+import com.vicpoo.shopy.data.local.dao.PendingOperationDao
 import com.vicpoo.shopy.data.local.dao.ProductDao
 import dagger.Module
 import dagger.Provides
@@ -34,4 +35,7 @@ object DatabaseModule {
 
     @Provides
     fun provideProductDao(database: ShopyDatabase): ProductDao = database.productDao()
+
+    @Provides
+    fun providePendingOperationDao(database: ShopyDatabase): PendingOperationDao = database.pendingOperationDao()
 }

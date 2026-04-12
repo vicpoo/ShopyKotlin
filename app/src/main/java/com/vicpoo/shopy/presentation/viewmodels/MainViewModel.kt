@@ -36,6 +36,7 @@ class MainViewModel @Inject constructor(
     private val changeUserRoleUseCase: ChangeUserRoleUseCase,
     private val observeAllClothesUseCase: ObserveAllClothesUseCase,
     private val observeClothesBySellerUseCase: ObserveClothesBySellerUseCase,
+    private val syncCartUseCase: SyncCartUseCase,
     private val productDao: ProductDao,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -46,7 +47,6 @@ class MainViewModel @Inject constructor(
 
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
-
 
     val products: StateFlow<List<Cloth>> = productDao
         .getAllProducts()
@@ -85,14 +85,12 @@ class MainViewModel @Inject constructor(
     private val _showBecomeSellerDialog = MutableStateFlow(false)
     val showBecomeSellerDialog: StateFlow<Boolean> = _showBecomeSellerDialog.asStateFlow()
 
-
     private var soundPool: SoundPool? = null
     private var notificationSoundId: Int = 0
     private var isSoundLoaded = false
 
     private var firebaseJob: Job? = null
     private var notificationJob: Job? = null
-
 
     init {
         initSound()
@@ -135,7 +133,6 @@ class MainViewModel @Inject constructor(
         isSoundLoaded = false
     }
 
-
     private fun setupConnectivityListener() {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -143,7 +140,12 @@ class MainViewModel @Inject constructor(
             override fun onAvailable(network: Network) {
                 Log.d(TAG, "📶 Online")
                 _isOnline.value = true
-                viewModelScope.launch { startFirebaseSync() }
+                viewModelScope.launch {
+                    startFirebaseSync()
+                    // Sincronizar carrito cuando vuelve el internet
+                    syncCartUseCase()
+                    syncCartUseCase.syncFromFirebase()
+                }
             }
 
             override fun onLost(network: Network) {
@@ -166,7 +168,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
     private fun startFirebaseSync() {
         stopFirebaseSync()
         if (!_isOnline.value) return
@@ -174,8 +175,6 @@ class MainViewModel @Inject constructor(
         Log.d(TAG, "🔥 Iniciando sync Firebase → Room")
 
         firebaseJob = viewModelScope.launch {
-
-            // A. Listener general (todos los productos)
             launch {
                 observeAllClothesUseCase()
                     .catch { e ->
@@ -189,7 +188,6 @@ class MainViewModel @Inject constructor(
                     }
             }
 
-            // B. Listener del vendedor (solo si es vendedor)
             val uid = _currentUser.value?.uid
             if (_isSeller.value && uid != null) {
                 launch {
@@ -216,7 +214,6 @@ class MainViewModel @Inject constructor(
         Log.d(TAG, "🛑 Firebase sync detenido")
     }
 
-
     private fun observeUser() {
         viewModelScope.launch {
             getCurrentUserUseCase()
@@ -230,7 +227,11 @@ class MainViewModel @Inject constructor(
 
                     if (user != null) {
                         Log.d(TAG, "👤 Usuario: ${user.email}, seller: ${user.isSeller}")
-                        if (_isOnline.value) startFirebaseSync()
+                        if (_isOnline.value) {
+                            startFirebaseSync()
+                            // Sincronizar carrito al iniciar sesión
+                            syncCartUseCase.syncFromFirebase()
+                        }
                         observeCartCount()
                         startNotificationPolling()
                     } else {
@@ -244,7 +245,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
     private fun observeCartCount() {
         viewModelScope.launch {
             getCartItemsUseCase()
@@ -255,7 +255,6 @@ class MainViewModel @Inject constructor(
                 .collect { items -> _cartItemCount.value = items.sumOf { it.quantity } }
         }
     }
-
 
     private fun startNotificationPolling() {
         stopNotificationPolling()
@@ -282,7 +281,6 @@ class MainViewModel @Inject constructor(
         notificationJob?.cancel()
         notificationJob = null
     }
-
 
     fun refreshProducts() {
         if (_isRefreshing.value) return

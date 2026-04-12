@@ -11,6 +11,9 @@ interface ProductDao {
     @Query("SELECT * FROM products ORDER BY createdAt DESC")
     fun getAllProducts(): Flow<List<ProductEntity>>
 
+    @Query("SELECT * FROM products ORDER BY createdAt DESC")
+    suspend fun getAllProductsOnce(): List<ProductEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAllProducts(products: List<ProductEntity>)
 
@@ -30,7 +33,4 @@ interface ProductDao {
 
     @Query("DELETE FROM products")
     suspend fun clearAllProducts()
-
-    @Query("SELECT * FROM products ORDER BY createdAt DESC")
-    suspend fun getAllProductsOnce(): List<ProductEntity>
 }

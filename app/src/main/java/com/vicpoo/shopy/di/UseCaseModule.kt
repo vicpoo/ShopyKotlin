@@ -1,4 +1,4 @@
-//UseCaseModule.kt
+// di/UseCaseModule.kt (agregar al final)
 package com.vicpoo.shopy.di
 
 import com.vicpoo.shopy.domain.repository.*
@@ -107,6 +107,11 @@ object UseCaseModule {
 
     @Provides
     @ViewModelScoped
+    fun provideObserveProductByIdUseCase(repository: ClothRepository): ObserveProductByIdUseCase =
+        ObserveProductByIdUseCase(repository)  // ← NUEVO
+
+    @Provides
+    @ViewModelScoped
     fun provideSearchClothByNameUseCase(repository: ClothRepository): SearchClothByNameUseCase =
         SearchClothByNameUseCase(repository)
 
@@ -177,6 +182,7 @@ object UseCaseModule {
     fun provideGetUnreadNotificationCountUseCase(repository: NotificationRepository): GetUnreadNotificationCountUseCase =
         GetUnreadNotificationCountUseCase(repository)
 
+    // Review UseCases
     @Provides
     @ViewModelScoped
     fun provideObserveReviewsForProductUseCase(repository: ReviewRepository): ObserveReviewsForProductUseCase =

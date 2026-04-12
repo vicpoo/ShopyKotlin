@@ -12,8 +12,9 @@ interface ClothRepository {
     suspend fun updateCloth(id: String, cloth: Cloth, imageFile: File? = null): Cloth
     suspend fun deleteCloth(id: String): Boolean
     suspend fun getClothesBySeller(sellerId: String): List<Cloth>
-    fun observeAllClothes(): Flow<List<Cloth>>           // ← NUEVO (tiempo real)
+    fun observeAllClothes(): Flow<List<Cloth>>
     fun observeClothesBySeller(sellerId: String): Flow<List<Cloth>>
+    fun observeProductById(productId: String): Flow<Cloth?>  // ← NUEVO
     suspend fun searchByName(name: String): List<Cloth>
     suspend fun searchBySize(size: String): List<Cloth>
     suspend fun searchByPriceRange(minPrice: Double, maxPrice: Double): List<Cloth>

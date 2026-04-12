@@ -10,6 +10,9 @@ interface CartDao {
     @Query("SELECT * FROM cart_items ORDER BY lastUpdated DESC")
     fun getCartItems(): Flow<List<CartItemEntity>>
 
+    @Query("SELECT * FROM cart_items")
+    suspend fun getAllCartItemsOnce(): List<CartItemEntity>
+
     @Query("SELECT * FROM cart_items WHERE productId = :productId")
     suspend fun getCartItem(productId: String): CartItemEntity?
 

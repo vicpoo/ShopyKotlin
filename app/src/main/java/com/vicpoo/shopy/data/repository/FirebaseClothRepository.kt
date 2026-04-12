@@ -1,4 +1,4 @@
-// data/repository/FirebaseClothRepository.kt
+// data/repository/FirebaseClothRepository.kt (agregar este método)
 package com.vicpoo.shopy.data.repository
 
 import android.util.Log
@@ -86,6 +86,30 @@ class FirebaseClothRepository @Inject constructor(
         query.addValueEventListener(listener)
         awaitClose {
             try { query.removeEventListener(listener) } catch (_: Exception) { }
+        }
+    }
+
+    // ✅ NUEVO MÉTODO: Observar un producto específico en tiempo real
+    override fun observeProductById(productId: String): Flow<Cloth?> = callbackFlow {
+        val productRef = productsRef.child(productId)
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val cloth = snapshot.toCloth()
+                Log.d(TAG, "👀 observeProductById $productId: ${cloth?.name}, rating=${cloth?.averageRating}")
+                trySend(cloth)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "observeProductById cancelado: ${error.message}")
+                close(error.toException())
+            }
+        }
+
+        productRef.addValueEventListener(listener)
+
+        awaitClose {
+            productRef.removeEventListener(listener)
         }
     }
 

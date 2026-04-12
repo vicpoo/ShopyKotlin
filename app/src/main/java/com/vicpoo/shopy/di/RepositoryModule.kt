@@ -28,7 +28,7 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCartRepository(
-        roomCartRepository: RoomCartRepository // 👈 Cambiamos a RoomCartRepository
+        syncCartRepository: SyncCartRepository
     ): CartRepository
 
     @Binds
@@ -42,5 +42,4 @@ abstract class RepositoryModule {
     abstract fun bindReviewRepository(
         firebaseReviewRepository: FirebaseReviewRepository
     ): ReviewRepository
-
 }

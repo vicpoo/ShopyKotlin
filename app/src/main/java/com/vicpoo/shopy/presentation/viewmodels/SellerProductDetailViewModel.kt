@@ -1,6 +1,7 @@
-//SellerProductDetailViewModel.kt
+// presentation/viewmodels/SellerProductDetailViewModel.kt
 package com.vicpoo.shopy.presentation.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vicpoo.shopy.domain.model.Cloth
@@ -15,6 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SellerProductDetailViewModel @Inject constructor(
     private val getClothByIdUseCase: GetClothByIdUseCase,
+    private val observeProductByIdUseCase: ObserveProductByIdUseCase,
     private val reviewRepository: ReviewRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
@@ -58,19 +60,27 @@ class SellerProductDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Cargar producto
-                val productData = getClothByIdUseCase(productId)
-                _product.value = productData
+                // ✅ Observar producto en tiempo real (actualiza rating automáticamente)
+                launch {
+                    observeProductByIdUseCase(productId).collect { productData ->
+                        if (productData != null) {
+                            _product.value = productData
+                            Log.d("SellerProductDetailVM", "🔄 Producto actualizado: rating=${productData.averageRating}, total=${productData.totalReviews}")
+                        }
+                    }
+                }
 
-                // Iniciar la recolección de reseñas (esto corre en paralelo)
+                // ✅ Observar reseñas en tiempo real
                 launch {
                     reviewRepository.getReviewsForProduct(productId).collect { reviewsList ->
                         _reviews.value = reviewsList
+                        Log.d("SellerProductDetailVM", "🔄 Reseñas actualizadas: ${reviewsList.size}")
                     }
                 }
 
             } catch (e: Exception) {
                 _error.value = e.message
+                Log.e("SellerProductDetailVM", "Error loading product", e)
             } finally {
                 _isLoading.value = false
             }
@@ -96,10 +106,11 @@ class SellerProductDetailViewModel @Inject constructor(
 
             try {
                 reviewRepository.deleteReview(productId, review.id)
-                // La recolección de reseñas actualizará automáticamente _reviews
+                Log.d("SellerProductDetailVM", "✅ Review eliminada")
                 hideDeleteConfirmDialog()
             } catch (e: Exception) {
                 _error.value = e.message
+                Log.e("SellerProductDetailVM", "Error deleting review", e)
             } finally {
                 _isLoading.value = false
             }
