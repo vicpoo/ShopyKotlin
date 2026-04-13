@@ -17,6 +17,7 @@ import com.vicpoo.shopy.data.local.entity.ProductEntity
 import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.domain.model.User
 import com.vicpoo.shopy.domain.usecase.*
+import com.vicpoo.shopy.domain.work.WorkManagerHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -37,6 +38,7 @@ class MainViewModel @Inject constructor(
     private val observeAllClothesUseCase: ObserveAllClothesUseCase,
     private val observeClothesBySellerUseCase: ObserveClothesBySellerUseCase,
     private val syncCartUseCase: SyncCartUseCase,
+    private val workManagerHelper: WorkManagerHelper,
     private val productDao: ProductDao,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
@@ -145,6 +147,8 @@ class MainViewModel @Inject constructor(
                     // Sincronizar carrito cuando vuelve el internet
                     syncCartUseCase()
                     syncCartUseCase.syncFromFirebase()
+                    // Ejecutar WorkManager inmediatamente
+                    workManagerHelper.syncNow()
                 }
             }
 

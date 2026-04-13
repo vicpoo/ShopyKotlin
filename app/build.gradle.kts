@@ -53,6 +53,11 @@ kapt {
 
 dependencies {
 
+    // ---------------- WORKMANAGER ----------------
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.hilt.work)
+    kapt(libs.hilt.work.compiler)
+
     // ---------------- HILT ----------------
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
