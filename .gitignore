@@ -12,4 +12,16 @@
 /captures
 .externalNativeBuild
 .cxx
+
+# 🛠️ Archivos locales
 local.properties
+.env
+
+# 🔐 Credenciales sensibles (ESPECÍFICO, no global)
+app/src/main/res/raw/*.json
+*.key
+*.pem
+*.keystore
+
+# 🔥 Firebase (este SÍ normalmente se sube, pero si no quieres:)
+# google-services.json
