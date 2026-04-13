@@ -5,19 +5,16 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.messaging.FirebaseMessaging
-import com.vicpoo.shopy.domain.repository.NotificationRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
-
 
 class NotificationWorker @AssistedInject constructor(
     @Assisted private val context: Context,
-    @Assisted private val params: WorkerParameters,
-    private val notificationRepository: NotificationRepository
+    @Assisted private val params: WorkerParameters
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -25,25 +22,40 @@ class NotificationWorker @AssistedInject constructor(
         const val WORK_NAME = "notification_work"
     }
 
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        return@withContext try {
-            Log.d(TAG, "🔔 WorkManager: Sincronizando notificaciones")
+    override suspend fun doWork(): Result {
+        return try {
+            Log.d(TAG, "🔔 WorkManager: Sincronizando tokens FCM")
 
-            // Obtener token actual de FCM
+            // Obtener token actual
             val token = FirebaseMessaging.getInstance().token.await()
-            Log.d(TAG, "📱 FCM Token actual: ${token.take(20)}...")
+            Log.d(TAG, "📱 FCM Token: ${token.take(20)}...")
 
-            // Aquí puedes guardar el token en Firebase Database o tu backend
-            // saveTokenToDatabase(token)
+            // Guardar token asociado al usuario actual
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId != null) {
+                val userFcmRef = FirebaseDatabase.getInstance()
+                    .getReference("users")
+                    .child(userId)
+                    .child("fcmTokens")
+                    .child(token)
 
-            // Limpiar notificaciones leídas de más de 30 días
-            // cleanupOldNotifications()
+                userFcmRef.setValue(mapOf(
+                    "token" to token,
+                    "device" to android.os.Build.MODEL,
+                    "timestamp" to System.currentTimeMillis()
+                )).await()
 
-            Log.d(TAG, "✅ WorkManager: Notificaciones sincronizadas")
+                Log.d(TAG, "✅ Token guardado para usuario: $userId")
+            }
+
+            // Suscribir a topic global
+            FirebaseMessaging.getInstance().subscribeToTopic("all_users").await()
+            Log.d(TAG, "✅ Suscrito a topic: all_users")
+
             Result.success()
 
         } catch (e: Exception) {
-            Log.e(TAG, "❌ WorkManager: Error en notificaciones", e)
+            Log.e(TAG, "❌ Error en NotificationWorker", e)
             Result.retry()
         }
     }

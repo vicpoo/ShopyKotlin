@@ -11,8 +11,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
-    <!-- Permisos para vibración -->
+    <!-- Permisos para vibración y notificaciones -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Permisos para WorkManager -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -35,6 +36,11 @@
         android:theme="@style/Theme.Shopy"
         android:requestLegacyExternalStorage="true">
 
+        <!-- Meta-data para el canal de notificaciones por defecto -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="shopy_notifications" />
+
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
@@ -48,6 +54,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Servicio de Firebase Messaging -->
+        <service
+            android:name=".services.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <!-- Google SignIn Activity -->
         <activity
@@ -67,15 +82,12 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
-        <!-- ========== WORK MANAGER CONFIGURATION ========== -->
-
-        <!-- Servicios necesarios para WorkManager -->
+        <!-- Work Manager Services -->
         <service
             android:name="androidx.work.impl.background.systemjob.SystemJobService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <!-- Receivers necesarios para WorkManager -->
         <receiver
             android:name="androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver"
             android:exported="false" />
@@ -114,4 +126,5 @@
         </receiver>
 
     </application>
+
 </manifest>

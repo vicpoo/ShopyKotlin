@@ -1,9 +1,10 @@
-// data/repository/FirebaseClothRepository.kt (agregar este método)
+// data/repository/FirebaseClothRepository.kt
 package com.vicpoo.shopy.data.repository
 
 import android.util.Log
 import com.google.firebase.database.*
 import com.vicpoo.shopy.core.utils.Base64ImageUtils
+import com.vicpoo.shopy.core.utils.NotificationHelper
 import com.vicpoo.shopy.domain.model.Cloth
 import com.vicpoo.shopy.domain.repository.ClothRepository
 import kotlinx.coroutines.channels.awaitClose
@@ -16,7 +17,8 @@ import javax.inject.Singleton
 
 @Singleton
 class FirebaseClothRepository @Inject constructor(
-    private val database: FirebaseDatabase
+    private val database: FirebaseDatabase,
+    private val notificationHelper: NotificationHelper
 ) : ClothRepository {
 
     private val productsRef = database.getReference("products")
@@ -89,7 +91,6 @@ class FirebaseClothRepository @Inject constructor(
         }
     }
 
-    // ✅ NUEVO MÉTODO: Observar un producto específico en tiempo real
     override fun observeProductById(productId: String): Flow<Cloth?> = callbackFlow {
         val productRef = productsRef.child(productId)
 
@@ -146,6 +147,7 @@ class FirebaseClothRepository @Inject constructor(
             newProductRef.setValue(clothMap).await()
             Log.d(TAG, "Producto creado: $productId")
 
+            // Guardar notificación en Firebase Database
             try {
                 val notifMap = HashMap<String, Any>().apply {
                     put("title", "Nuevo producto disponible")
@@ -155,8 +157,29 @@ class FirebaseClothRepository @Inject constructor(
                     put("read", false)
                 }
                 notificationsRef.push().setValue(notifMap).await()
+                Log.d(TAG, "✅ Notificación guardada en DB")
             } catch (e: Exception) {
-                Log.e(TAG, "Error al crear notificación", e)
+                Log.e(TAG, "Error al crear notificación en DB", e)
+            }
+
+            // ✅ ENVIAR NOTIFICACIÓN PUSH A TODOS LOS USUARIOS
+            try {
+                val pushTitle = "✨ Nuevo producto: ${cloth.name}"
+                val pushMessage = "¡Revisa las nuevas prendas disponibles!"
+
+                val result = notificationHelper.sendNotificationToAllUsers(
+                    title = pushTitle,
+                    message = pushMessage,
+                    productId = productId
+                )
+
+                if (result) {
+                    Log.d(TAG, "✅ Notificación push enviada exitosamente")
+                } else {
+                    Log.e(TAG, "❌ Error enviando notificación push")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error enviando push notification", e)
             }
 
             cloth.copy(id = productId, image = base64Image ?: cloth.image)

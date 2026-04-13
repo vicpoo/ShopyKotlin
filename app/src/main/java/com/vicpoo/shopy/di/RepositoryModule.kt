@@ -1,11 +1,15 @@
 // di/RepositoryModule.kt
 package com.vicpoo.shopy.di
 
+import android.content.Context
+import com.vicpoo.shopy.core.utils.NotificationHelper
 import com.vicpoo.shopy.data.repository.*
 import com.vicpoo.shopy.domain.repository.*
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -42,4 +46,15 @@ abstract class RepositoryModule {
     abstract fun bindReviewRepository(
         firebaseReviewRepository: FirebaseReviewRepository
     ): ReviewRepository
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NotificationModule {
+
+    @Provides
+    @Singleton
+    fun provideNotificationHelper(@ApplicationContext context: Context): NotificationHelper {
+        return NotificationHelper(context)
+    }
 }

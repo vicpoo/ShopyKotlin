@@ -45,6 +45,19 @@ android {
     buildFeatures {
         compose = true
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE"
+            excludes += "/META-INF/LICENSE.txt"
+            excludes += "/META-INF/NOTICE"
+            excludes += "/META-INF/NOTICE.txt"
+            excludes += "/META-INF/AL2.0"
+            excludes += "/META-INF/LGPL2.1"
+        }
+    }
 }
 
 kapt {
@@ -52,6 +65,18 @@ kapt {
 }
 
 dependencies {
+
+    // Para FCM V1 con OAuth2
+    implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
+    implementation("com.google.auth:google-auth-library-credentials:1.23.0")
+
+
+    implementation(platform("com.google.auth:google-auth-library-bom:1.23.0"))
+    implementation("com.google.auth:google-auth-library-oauth2-http")
+    implementation("com.google.auth:google-auth-library-credentials")
+
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
 
     // ---------------- WORKMANAGER ----------------
     implementation(libs.androidx.work.runtime.ktx)

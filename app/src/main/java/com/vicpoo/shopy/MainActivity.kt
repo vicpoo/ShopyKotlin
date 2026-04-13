@@ -2,6 +2,7 @@
 package com.vicpoo.shopy
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -14,12 +15,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavController
 import com.vicpoo.shopy.navigation.AppNavigation
 import com.vicpoo.shopy.ui.theme.ShopyTheme
 import dagger.hilt.android.AndroidEntryPoint
+import android.util.Log
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private lateinit var navController: NavController
+    private var pendingProductId: String? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -42,6 +48,11 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Verificar si la app fue abierta desde una notificación
+        intent?.let {
+            handleNotificationIntent(it)
+        }
+
         setContent {
             ShopyTheme {
                 Surface(
@@ -52,5 +63,30 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // ✅ CORREGIDO: onNewIntent con Intent no nullable
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    // ✅ CORREGIDO: handleNotificationIntent recibe Intent no nullable
+    private fun handleNotificationIntent(intent: Intent) {
+        if (intent.getBooleanExtra("from_notification", false)) {
+            val productId = intent.getStringExtra("product_id")
+            if (productId != null) {
+                Log.d("MainActivity", "🔔 Abriendo producto desde notificación: $productId")
+                pendingProductId = productId
+                // La navegación se manejará cuando la UI esté lista
+                // Puedes usar un canal de eventos o StateFlow para comunicarte con la navegación
+            }
+        }
+    }
+
+    fun getPendingProductId(): String? {
+        val id = pendingProductId
+        pendingProductId = null
+        return id
     }
 }

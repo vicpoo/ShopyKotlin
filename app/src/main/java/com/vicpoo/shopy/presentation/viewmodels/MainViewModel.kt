@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vicpoo.shopy.R
+import com.vicpoo.shopy.core.utils.NotificationHelper
 import com.vicpoo.shopy.data.local.dao.ProductDao
 import com.vicpoo.shopy.data.local.entity.ProductEntity
 import com.vicpoo.shopy.domain.model.Cloth
@@ -40,6 +41,7 @@ class MainViewModel @Inject constructor(
     private val syncCartUseCase: SyncCartUseCase,
     private val workManagerHelper: WorkManagerHelper,
     private val productDao: ProductDao,
+    private val notificationHelper: NotificationHelper, // ✅ INYECTADO
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -98,6 +100,7 @@ class MainViewModel @Inject constructor(
         initSound()
         setupConnectivityListener()
         observeUser()
+        subscribeToPushTopics()
     }
 
     private fun initSound() {
@@ -135,6 +138,29 @@ class MainViewModel @Inject constructor(
         isSoundLoaded = false
     }
 
+    /**
+     * Suscribir el dispositivo a topics de notificaciones push
+     */
+    private fun subscribeToPushTopics() {
+        viewModelScope.launch {
+            try {
+                // ✅ Usar la instancia inyectada
+                notificationHelper.subscribeToTopic("all_users")
+
+                // Cuando el usuario esté autenticado, suscribir a su topic personal
+                getCurrentUserUseCase().collect { user ->
+                    user?.let {
+                        val userTopic = "user_${it.uid}"
+                        notificationHelper.subscribeToTopic(userTopic)
+                        Log.d(TAG, "✅ Suscrito a topic personal: $userTopic")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error suscribiendo a topics", e)
+            }
+        }
+    }
+
     private fun setupConnectivityListener() {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
@@ -144,10 +170,8 @@ class MainViewModel @Inject constructor(
                 _isOnline.value = true
                 viewModelScope.launch {
                     startFirebaseSync()
-                    // Sincronizar carrito cuando vuelve el internet
                     syncCartUseCase()
                     syncCartUseCase.syncFromFirebase()
-                    // Ejecutar WorkManager inmediatamente
                     workManagerHelper.syncNow()
                 }
             }
@@ -233,7 +257,6 @@ class MainViewModel @Inject constructor(
                         Log.d(TAG, "👤 Usuario: ${user.email}, seller: ${user.isSeller}")
                         if (_isOnline.value) {
                             startFirebaseSync()
-                            // Sincronizar carrito al iniciar sesión
                             syncCartUseCase.syncFromFirebase()
                         }
                         observeCartCount()
@@ -333,6 +356,16 @@ class MainViewModel @Inject constructor(
                 _isSeller.value = true
                 _showBecomeSellerDialog.value = false
                 if (_isOnline.value) startFirebaseSync()
+
+                // ✅ Obtener token actual y enviar notificación
+                val currentToken = notificationHelper.getCurrentFcmToken()
+                if (currentToken != null) {
+                    notificationHelper.sendNotificationToUser(
+                        fcmToken = currentToken,
+                        title = "¡Felicidades!",
+                        message = "Ahora eres vendedor en Shopy. ¡Comienza a publicar tus productos!"
+                    )
+                }
             } catch (e: Exception) {
                 _error.value = "Error al convertirse en vendedor: ${e.message}"
             } finally {
