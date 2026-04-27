@@ -16,8 +16,6 @@ class CaptchaLocalDataSource {
             CaptchaImageEntity(4, R.drawable.gato3, false),
             CaptchaImageEntity(3, R.drawable.gato4, false),
             CaptchaImageEntity(4, R.drawable.gato5, false),
-
-            // hasta 10
         )
     }
 }
