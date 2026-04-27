@@ -1,3 +1,4 @@
+//GenerateCaptchaUSeCase.kt
 package com.vicpoo.shopy.domain.usecase
 
 

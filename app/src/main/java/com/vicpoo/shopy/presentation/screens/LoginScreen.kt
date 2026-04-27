@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -45,9 +46,10 @@ fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val showCaptcha by viewModel.showCaptcha.collectAsStateWithLifecycle()
 
     var passwordVisible by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
@@ -241,10 +243,14 @@ fun LoginScreen(
 
                     Button(
                         onClick = {
-                            if (email.isNotBlank() && password.isNotBlank()) {
-                                viewModel.login(LoginRequest(email, password))
-                            } else {
-                                Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                            when {
+                                email.isBlank() || password.isBlank() -> {
+                                    Toast.makeText(context, "Completa todos los campos", Toast.LENGTH_SHORT).show()
+                                }
+                                else -> {
+                                    // Usar requestLogin en lugar de login directo
+                                    viewModel.requestLogin(email, password)
+                                }
                             }
                         },
                         modifier = Modifier
@@ -381,5 +387,17 @@ fun LoginScreen(
                 }
             }
         }
+    }
+
+    // Diálogo del captcha
+    if (showCaptcha) {
+        CaptchaScreen(
+            onSuccess = {
+                viewModel.proceedAfterCaptcha()
+            },
+            onDismiss = {
+                viewModel.hideCaptcha()
+            }
+        )
     }
 }

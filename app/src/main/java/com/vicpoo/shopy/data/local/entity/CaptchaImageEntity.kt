@@ -1,3 +1,4 @@
+//CaptchaImageEntity.kt
 package com.vicpoo.shopy.data.local.entity
 
 data class CaptchaImageEntity(

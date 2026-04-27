@@ -1,4 +1,3 @@
-//RegisterScreen.kt
 package com.vicpoo.shopy.presentation.screens
 
 import android.widget.Toast
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.vicpoo.shopy.domain.model.RegisterRequest
 import com.vicpoo.shopy.presentation.viewmodels.AuthViewModel
@@ -41,9 +41,10 @@ fun RegisterScreen(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.error.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val error by viewModel.error.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val showCaptcha by viewModel.showCaptcha.collectAsStateWithLifecycle()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -316,7 +317,8 @@ fun RegisterScreen(
                                     }
 
                                     else -> {
-                                        viewModel.register(
+                                        // Usar requestRegister en lugar de register directo
+                                        viewModel.requestRegister(
                                             RegisterRequest(
                                                 email = email,
                                                 password = password,
@@ -383,5 +385,17 @@ fun RegisterScreen(
                 Spacer(modifier = Modifier.height(40.dp))
             }
         }
+    }
+
+    // Diálogo del captcha
+    if (showCaptcha) {
+        CaptchaScreen(
+            onSuccess = {
+                viewModel.proceedAfterCaptcha()
+            },
+            onDismiss = {
+                viewModel.hideCaptcha()
+            }
+        )
     }
 }

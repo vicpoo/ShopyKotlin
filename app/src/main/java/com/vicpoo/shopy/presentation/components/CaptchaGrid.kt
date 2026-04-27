@@ -1,3 +1,4 @@
+//CaptchaGrid
 package com.vicpoo.shopy.presentation.components
 
 import androidx.compose.foundation.Image

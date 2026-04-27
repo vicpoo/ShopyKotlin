@@ -1,3 +1,4 @@
+//CaptchaImage.kt
 package com.vicpoo.shopy.domain.model
 
 data class CaptchaImage(
