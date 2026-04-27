@@ -6,11 +6,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.vicpoo.shopy.presentation.screens.*
 
 sealed class Screen(val route: String) {
@@ -20,8 +18,10 @@ sealed class Screen(val route: String) {
     object Seller : Screen("seller")
     object Cart : Screen("cart")
     object Notifications : Screen("notifications")
-    object ProductDetail : Screen("product_detail/{productId}")
-    object SellerProductDetail : Screen("seller_product_detail/{productId}")
+
+
+    object  Captcat: Screen ("captcha")
+
 }
 
 @Composable
@@ -129,7 +129,7 @@ fun AppNavigation() {
                     navController = navController,
                     onBack = { navController.popBackStack() },
                     onProductClick = { productId ->
-                        navController.navigate("product_detail/$productId")
+                        navController.popBackStack(Screen.Main.route, false)
                     }
                 )
             } else {
@@ -139,30 +139,6 @@ fun AppNavigation() {
                     }
                 }
             }
-        }
-
-        composable(
-            route = Screen.ProductDetail.route,
-            arguments = listOf(navArgument("productId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getString("productId") ?: return@composable
-            ProductDetailScreen(
-                navController = navController,
-                productId = productId,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable(
-            route = Screen.SellerProductDetail.route,
-            arguments = listOf(navArgument("productId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getString("productId") ?: return@composable
-            SellerProductDetailScreen(
-                navController = navController,
-                productId = productId,
-                onBack = { navController.popBackStack() }
-            )
         }
     }
 }
